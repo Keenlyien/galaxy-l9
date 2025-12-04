@@ -1,4 +1,28 @@
 // Redirect if not logged in
+let currentLang = 'en'; // default language
+
+function setLanguage(lang) {
+    currentLang = lang;
+
+    // Update login page if exists
+    if (document.getElementById("username")) {
+        document.querySelector("h2").textContent = LANG[lang].login_title;
+        document.getElementById("username").placeholder = LANG[lang].username_placeholder;
+        document.getElementById("password").placeholder = LANG[lang].password_placeholder;
+        document.querySelector(".btn").textContent = LANG[lang].login_btn;
+    }
+
+    // Update dashboard page if exists
+    if (document.querySelector(".header-title")) {
+        document.querySelector(".header-title").textContent = LANG[lang].boss_schedule_title;
+        document.querySelector(".logout-btn").textContent = LANG[lang].logout_btn;
+    }
+
+    // Re-render bosses so button text and status updates
+    if (typeof renderBosses === "function") renderBosses();
+}
+
+
 if (localStorage.getItem("logged_in") !== "true") {
     window.location.href = "index.html";
 }
@@ -79,7 +103,7 @@ function getNextWeeklySpawn(schedule) {
 }
 
 /* -----------------------------
-   MAIN RENDER
+   MAIN RENDER (PATCHED LOGIC)
 ----------------------------- */
 
 function renderBosses() {
@@ -98,14 +122,29 @@ function renderBosses() {
 
             if (lastKill) {
                 const respawnMs = hours * 3600 * 1000;
-                timeLeft = respawnMs - (Date.now() - parseInt(lastKill));
-                status = timeLeft > 0 ? "Dead" : "Alive";
+
+                /* 🔥 FIXED TIME CALCULATION 🔥 */
+                let elapsed = Date.now() - parseInt(lastKill);
+
+                if (elapsed < 0) elapsed = 0; // prevent future time issues
+
+                timeLeft = respawnMs - elapsed;
+
+                if (timeLeft < 0) timeLeft = 0;
+
+                status = timeLeft > 0 ? LANG[currentLang].dead : LANG[currentLang].alive;
+
             }
 
         } else if (weekly) {
+
             const nextSpawn = getNextWeeklySpawn(weekly);
             timeLeft = nextSpawn - new Date();
-            status = "Dead";
+
+            if (timeLeft < 0) timeLeft = 0;
+
+            status = timeLeft > 0 ? LANG[currentLang].dead : LANG[currentLang].alive;
+
         }
 
         const card = document.createElement("div");
@@ -117,20 +156,23 @@ function renderBosses() {
                 <div class="boss-left">
                     <div class="boss-title">${boss.name} <span style="opacity:0.8; font-size:16px;">(Lv. ${boss.level})</span></div>
                     <div class="boss-sub">${boss.location}</div>
-                    <div class="boss-sub">Respawn: ${boss.respawn}</div>
+                    <div class="boss-sub">
+                        ${LANG[currentLang].respawn}: ${boss.respawn}
+                    </div>
                     <div class="timer" id="timer_${i}">
-                        ${timeLeft > 0 ? formatTime(timeLeft) : "Alive"}
+                        ${timeLeft > 0 ? formatTime(timeLeft) : LANG[currentLang].alive}
                     </div>
 
                     ${hours !== null ? `
                     <button class="datetime-picker-btn" onclick="openDTModal(${i})">
-                        Pick Date & Time
+                        ${LANG[currentLang].pick_datetime}
                     </button>
 
                     <input type="datetime-local" class="datetime-input" id="dt_${i}">
                     <div class="datetime-display" id="dt_display_${i}">
-                        No date selected
+                        ${LANG[currentLang].no_date}
                     </div>
+
                     ` : ""}
                 </div>
 
@@ -142,18 +184,21 @@ function renderBosses() {
 
             ${hours !== null ? `
             <div class="btn-row">
-                <button class="btn kill-btn" onclick="killBoss(${i})">Kill</button>
-                <button class="btn unkill-btn" onclick="unkillBoss(${i})">Unkill</button>
+                <button class="btn kill-btn" onclick="killBoss(${i})">${LANG[currentLang].kill}</button>
+                <button class="btn unkill-btn" onclick="unkillBoss(${i})">${LANG[currentLang].unkill}</button>
             </div>
             ` : ""}
         `;
-
 
         container.appendChild(card);
 
         if (timeLeft > 0) startTimer(i, timeLeft);
     });
 }
+
+/* -----------------------------
+   IMAGE SUPPORT
+----------------------------- */
 
 function getBossImage(name) {
     const images = {
@@ -177,12 +222,96 @@ function getBossImage(name) {
         "Benji": "images/Benji.png",
     };
 
-    return images[name] || "images/default.png"; // fallback
+    return images[name] || "images/default.png";
 }
 
+/* -----------------------------
+   LOCAL DATE PARSER
+----------------------------- */
+
+function parseLocalDateTime(value) {
+    const [datePart, timePart] = value.split("T");
+    const [year, month, day] = datePart.split("-").map(Number);
+    const [hour, minute] = timePart.split(":").map(Number);
+
+    return new Date(year, month - 1, day, hour, minute, 0, 0).getTime();
+}
 
 /* -----------------------------
-      DATE/TIME POPUP SYSTEM
+   KILL / UNKILL (PATCHED)
+----------------------------- */
+
+function killBoss(i) {
+    const input = document.getElementById(`dt_${i}`);
+
+    const selected = input.value
+        ? parseLocalDateTime(input.value)
+        : Date.now();
+
+    /* 🔥 PREVENT FUTURE TIMESTAMPS 🔥 */
+    const killTime = Math.min(selected, Date.now());
+
+    localStorage.setItem("boss_kill_" + bosses[i].name, killTime);
+    renderBosses();
+}
+
+function unkillBoss(i) {
+    localStorage.removeItem("boss_kill_" + bosses[i].name);
+    renderBosses();
+}
+
+/* -----------------------------
+   TIMER LOOP
+----------------------------- */
+
+function startTimer(id, timeLeft) {
+    const timerEl = document.getElementById("timer_" + id);
+
+    function tick() {
+        if (!timerEl) return;
+
+        if (timeLeft <= 0) {
+            timerEl.textContent = LANG[currentLang].alive;
+            return;
+        }
+
+        timerEl.textContent = formatTime(timeLeft);
+        timeLeft -= 1000;
+
+        setTimeout(tick, 1000);
+    }
+
+    tick();
+}
+
+/* -----------------------------
+   FORMATTER
+----------------------------- */
+
+function formatTime(ms) {
+    let sec = Math.floor(ms / 1000);
+
+    const days = Math.floor(sec / 86400);
+    sec %= 86400;
+
+    const hours = Math.floor(sec / 3600);
+    sec %= 3600;
+
+    const minutes = Math.floor(sec / 60);
+    const seconds = sec % 60;
+
+    const parts = [];
+
+    if (days > 0) parts.push(`${days} day${days !== 1 ? "s" : ""}`);
+    if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? "s" : ""}`);
+    if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? "s" : ""}`);
+    if (seconds >= 0) parts.push(`${seconds} second${seconds !== 1 ? "s" : ""}`);
+
+    return parts.join(", ");
+}
+
+/* -----------------------------
+   DATE/TIME MODAL FUNCTIONS
 ----------------------------- */
 
 let selectedBossIndex = null;
@@ -191,7 +320,7 @@ let modalDate = new Date();
 function openDTModal(index) {
     selectedBossIndex = index;
 
-    modalDate = new Date(); // reset default
+    modalDate = new Date();
     renderCalendar();
 
     document.getElementById("dt-modal").classList.remove("hidden");
@@ -201,7 +330,6 @@ function closeDTModal() {
     document.getElementById("dt-modal").classList.add("hidden");
 }
 
-/* ===== Calendar Rendering ===== */
 function renderCalendar() {
     const monthLabel = document.getElementById("dt-month-label");
     const daysContainer = document.getElementById("dt-days");
@@ -251,7 +379,6 @@ function renderCalendar() {
     renderTimeSelectors();
 }
 
-/* ===== Time Dropdowns ===== */
 function renderTimeSelectors() {
     const hourSel = document.getElementById("dt-hour");
     const minuteSel = document.getElementById("dt-minute");
@@ -277,7 +404,6 @@ function renderTimeSelectors() {
     minuteSel.value = modalDate.getMinutes();
 }
 
-/* ===== Month Navigation ===== */
 document.getElementById("dt-prev-month").onclick = () => {
     modalDate.setMonth(modalDate.getMonth() - 1);
     renderCalendar();
@@ -288,7 +414,14 @@ document.getElementById("dt-next-month").onclick = () => {
     renderCalendar();
 };
 
-/* ===== Confirm Selection ===== */
+// Time label
+document.querySelector(".dt-time-section label").textContent = LANG[currentLang].time;
+
+// Buttons
+document.querySelector(".dt-cancel").textContent = LANG[currentLang].cancel;
+document.querySelector(".dt-confirm").textContent = LANG[currentLang].confirm;
+
+
 function confirmDTSelection() {
     const hour = document.getElementById("dt-hour").value;
     const minute = document.getElementById("dt-minute").value;
@@ -298,7 +431,7 @@ function confirmDTSelection() {
     modalDate.setSeconds(0);
 
     const dtInput = document.getElementById(`dt_${selectedBossIndex}`);
-    dtInput.value = modalDate.toISOString().slice(0, 16);
+    dtInput.value = modalDate.toLocaleString("sv-SE").replace(" ", "T").slice(0, 16);
 
     const display = document.getElementById(`dt_display_${selectedBossIndex}`);
     display.textContent =
@@ -307,71 +440,3 @@ function confirmDTSelection() {
 
     closeDTModal();
 }
-
-/* -----------------------------
-   KILL / UNKILL
------------------------------ */
-
-function killBoss(i) {
-    const input = document.getElementById(`dt_${i}`);
-    const killTime = input.value ? new Date(input.value).getTime() : Date.now();
-
-    localStorage.setItem("boss_kill_" + bosses[i].name, killTime);
-    renderBosses();
-}
-
-function unkillBoss(i) {
-    localStorage.removeItem("boss_kill_" + bosses[i].name);
-    renderBosses();
-}
-
-/* -----------------------------
-   TIMER LOOP
------------------------------ */
-
-function startTimer(id, timeLeft) {
-    const timerEl = document.getElementById("timer_" + id);
-
-    function tick() {
-        if (!timerEl) return;
-
-        if (timeLeft <= 0) {
-            timerEl.textContent = "Alive";
-            return;
-        }
-
-        timerEl.textContent = formatTime(timeLeft);
-        timeLeft -= 1000;
-
-        setTimeout(tick, 1000);
-    }
-
-    tick();
-}
-
-/* -----------------------------
-   FORMATTER
------------------------------ */
-
-function formatTime(ms) {
-    let sec = Math.floor(ms / 1000);
-
-    const days = Math.floor(sec / 86400);
-    sec %= 86400;
-
-    const hours = Math.floor(sec / 3600);
-    sec %= 3600;
-
-    const minutes = Math.floor(sec / 60);
-    const seconds = sec % 60;
-
-    const parts = [];
-
-    if (days > 0) parts.push(`${days} day${days !== 1 ? "s" : ""}`);
-    if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? "s" : ""}`);
-    if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? "s" : ""}`);
-    if (seconds >= 0) parts.push(`${seconds} second${seconds !== 1 ? "s" : ""}`);
-
-    return parts.join(", ");
-}
-

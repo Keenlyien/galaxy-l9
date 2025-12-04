@@ -50,11 +50,18 @@
 <div class="header">
     <h1 class="header-title">L9 Galaxy Field Boss Schedule</h1>
     <button class="btn logout-btn" onclick="logout()">Logout</button>
+    <select id="lang-select" onchange="setLanguage(this.value)">
+    <option value="en">English</option>
+    <option value="th">ไทย</option>
+</select>
+
 </div>
 
 <div id="boss-container" class="boss-container"></div>
 
+<script src="lang.js"></script>
 <script src="app.js"></script>
+
 
 </body>
 </html>

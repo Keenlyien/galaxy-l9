@@ -86,7 +86,7 @@
   {
     "name": "Auraq",
     "level": 100,
-    "respawn": "Sunday 21:00",
+    "respawn": "Wednesday 21:00, Friday 22:00",
     "location": "Garbana Underground Waterway 2F",
     "last_killed": null
   },
