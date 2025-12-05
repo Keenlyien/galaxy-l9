@@ -265,7 +265,7 @@ function parseLocalDateTime(value) {
    KILL / UNKILL (PATCHED)
 ----------------------------- */
 
-function killBoss(i) {
+async function killBoss(i) {
     const input = document.getElementById(`dt_${i}`);
     const selected = input.value
         ? parseLocalDateTime(input.value)
@@ -273,14 +273,25 @@ function killBoss(i) {
 
     const killTime = Math.min(selected, Date.now());
 
+    // Save local copy (UI only)
     localStorage.setItem("boss_kill_" + bosses[i].name, killTime);
+
+    // UPDATE MONGODB
+    await updateBoss(bosses[i].name, killTime);
+
     renderBosses();
 }
 
-function unkillBoss(i) {
+
+async function unkillBoss(i) {
     localStorage.removeItem("boss_kill_" + bosses[i].name);
+
+    // Update MongoDB (status = null)
+    await updateBoss(bosses[i].name, null);
+
     renderBosses();
 }
+
 
 /* -----------------------------
    TIMER LOOP
@@ -462,40 +473,4 @@ function confirmDTSelection() {
     closeDTModal();
 }
 
-/* =====================================================
-   REAL-TIME / SSE (SAFE VERSION — NO DUPLICATES)
-===================================================== */
 
-// Create EventSource ONCE
-if (!window.eventSourceInstance) {
-    window.eventSourceInstance = new EventSource("/api/events");
-
-    window.eventSourceInstance.onmessage = (event) => {
-        if (!event.data) return;
-
-        const data = JSON.parse(event.data);
-
-        const bossEl = document.querySelector(`[data-boss='${data.name}']`);
-        if (!bossEl) return;
-
-        const statusText = data.last_killed ? "Killed" : "Alive";
-
-        bossEl.querySelector(".status").textContent = statusText;
-    };
-}
-
-/* =====================================================
-   BACKEND UPDATE CALL
-===================================================== */
-
-async function markBossKilled(name) {
-    try {
-        await fetch("/api/update", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name })
-        });
-    } catch (err) {
-        console.error("Failed to update boss:", err);
-    }
-}
