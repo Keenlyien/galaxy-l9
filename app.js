@@ -1,6 +1,42 @@
 // Redirect if not logged in
 let currentLang = 'en'; // default language
 
+// --- BACKEND UPDATE FUNCTIONS ---
+async function updateBoss(name, killedAt) {
+    await fetch("/api/updateBoss", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bossName: name, status: killedAt })
+    });
+}
+
+async function loadBossStatusFromDB() {
+    try {
+        const res = await fetch("/api/getBosses");
+        const dbBosses = await res.json();
+
+        dbBosses.forEach(d => {
+            // Replace local kill time with server kill time
+            if (d.status) {
+                localStorage.setItem("boss_kill_" + d.name, d.status);
+            } else {
+                localStorage.removeItem("boss_kill_" + d.name);
+            }
+        });
+
+        renderBosses();
+    } catch (err) {
+        console.error("Failed loading from DB:", err);
+    }
+}
+
+// Poll server every 5 seconds
+setInterval(loadBossStatusFromDB, 5000);
+
+// Run once at page load
+loadBossStatusFromDB();
+
+
 function setLanguage(lang) {
     currentLang = lang;
 
