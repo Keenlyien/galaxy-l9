@@ -22,7 +22,6 @@ function setLanguage(lang) {
     if (typeof renderBosses === "function") renderBosses();
 }
 
-
 if (localStorage.getItem("logged_in") !== "true") {
     window.location.href = "index.html";
 }
@@ -122,44 +121,35 @@ function renderBosses() {
 
             if (lastKill) {
                 const respawnMs = hours * 3600 * 1000;
-
-                /* 🔥 FIXED TIME CALCULATION 🔥 */
                 let elapsed = Date.now() - parseInt(lastKill);
-
-                if (elapsed < 0) elapsed = 0; // prevent future time issues
-
+                if (elapsed < 0) elapsed = 0;
                 timeLeft = respawnMs - elapsed;
-
                 if (timeLeft < 0) timeLeft = 0;
 
                 status = timeLeft > 0 ? LANG[currentLang].dead : LANG[currentLang].alive;
-
             }
 
         } else if (weekly) {
 
             const nextSpawn = getNextWeeklySpawn(weekly);
             timeLeft = nextSpawn - new Date();
-
             if (timeLeft < 0) timeLeft = 0;
 
             status = timeLeft > 0 ? LANG[currentLang].dead : LANG[currentLang].alive;
-
         }
 
         const card = document.createElement("div");
         card.className = `boss-card ${hours !== null ? (timeLeft > 0 ? "dead" : "alive") : "scheduled"}`;
 
+        card.setAttribute("data-boss", boss.name);
+
         card.innerHTML = `
             <div class="boss-content">
-
                 <div class="boss-left">
                     <div class="boss-title">${boss.name} <span style="opacity:0.8; font-size:16px;">(Lv. ${boss.level})</span></div>
                     <div class="boss-sub">${boss.location}</div>
-                    <div class="boss-sub">
-                        ${LANG[currentLang].respawn}: ${boss.respawn}
-                    </div>
-                    <div class="timer" id="timer_${i}">
+                    <div class="boss-sub respawn">${LANG[currentLang].respawn}: ${boss.respawn}</div>
+                    <div class="timer status" id="timer_${i}">
                         ${timeLeft > 0 ? formatTime(timeLeft) : LANG[currentLang].alive}
                     </div>
 
@@ -172,19 +162,17 @@ function renderBosses() {
                     <div class="datetime-display" id="dt_display_${i}">
                         ${LANG[currentLang].no_date}
                     </div>
-
                     ` : ""}
                 </div>
 
                 <div class="boss-right">
                     <img src="${getBossImage(boss.name)}" class="boss-image">
                 </div>
-
             </div>
 
             ${hours !== null ? `
             <div class="btn-row">
-                <button class="btn kill-btn" onclick="killBoss(${i})">${LANG[currentLang].kill}</button>
+                <button class="btn kill-btn" data-boss="${boss.name}" onclick="killBoss(${i})">${LANG[currentLang].kill}</button>
                 <button class="btn unkill-btn" onclick="unkillBoss(${i})">${LANG[currentLang].unkill}</button>
             </div>
             ` : ""}
@@ -243,12 +231,10 @@ function parseLocalDateTime(value) {
 
 function killBoss(i) {
     const input = document.getElementById(`dt_${i}`);
-
     const selected = input.value
         ? parseLocalDateTime(input.value)
         : Date.now();
 
-    /* 🔥 PREVENT FUTURE TIMESTAMPS 🔥 */
     const killTime = Math.min(selected, Date.now());
 
     localStorage.setItem("boss_kill_" + bosses[i].name, killTime);
@@ -421,7 +407,6 @@ document.querySelector(".dt-time-section label").textContent = LANG[currentLang]
 document.querySelector(".dt-cancel").textContent = LANG[currentLang].cancel;
 document.querySelector(".dt-confirm").textContent = LANG[currentLang].confirm;
 
-
 function confirmDTSelection() {
     const hour = document.getElementById("dt-hour").value;
     const minute = document.getElementById("dt-minute").value;
@@ -440,93 +425,41 @@ function confirmDTSelection() {
 
     closeDTModal();
 }
-// --- EXISTING CODE HERE ---
-// Insert this at the top or bottom of your current file
 
+/* =====================================================
+   REAL-TIME / SSE (SAFE VERSION — NO DUPLICATES)
+===================================================== */
 
-// Connect to real-time events
-const eventSource = new EventSource("/api/events");
+// Create EventSource ONCE
+if (!window.eventSourceInstance) {
+    window.eventSourceInstance = new EventSource("/api/events");
 
+    window.eventSourceInstance.onmessage = (event) => {
+        if (!event.data) return;
 
-// When backend broadcasts boss update
-eventSource.onmessage = (event) => {
-const data = JSON.parse(event.data);
-updateBossFromRealtime(data);
-};
+        const data = JSON.parse(event.data);
 
+        const bossEl = document.querySelector(`[data-boss='${data.name}']`);
+        if (!bossEl) return;
 
-function updateBossFromRealtime({ name, status, respawntime }) {
-// Use your existing DOM update logic
-const bossElement = document.querySelector(`[data-boss='${name}']`);
-if (!bossElement) return;
+        const statusText = data.last_killed ? "Killed" : "Alive";
 
-
-bossElement.querySelector(".status").textContent = status;
-if (respawntime) {
-bossElement.querySelector(".respawn").textContent = respawntime;
-}
+        bossEl.querySelector(".status").textContent = statusText;
+    };
 }
 
+/* =====================================================
+   BACKEND UPDATE CALL
+===================================================== */
 
-// Modify your existing "Mark as Kill" button logic
-async function markBoss(name) {
-await fetch("/api/update", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ name, status: "Killed", respawntime: "30m" }),
-});
-}
-
-// --- Step 2.1: Load initial boss status from MongoDB ---
-async function loadBossStatus() {
-  try {
-    const res = await fetch("/api/get-bosses"); // We'll create this endpoint next
-    const data = await res.json();
-    data.forEach(boss => {
-      const bossEl = document.querySelector(`[data-boss='${boss.name}']`);
-      if (!bossEl) return;
-      const statusText = boss.last_killed ? "Killed" : "Alive";
-      bossEl.querySelector(".status").textContent = statusText;
-      // Optional: show respawn time or calculate next respawn
-    });
-  } catch (err) {
-    console.error("Failed to load boss status:", err);
-  }
-}
-
-// Call on page load
-loadBossStatus();
-
-
-// --- Step 2.2: Connect to SSE for real-time updates ---
-const eventSource = new EventSource("/api/events");
-eventSource.onmessage = (event) => {
-  if (!event.data) return;
-  const data = JSON.parse(event.data);
-  const bossEl = document.querySelector(`[data-boss='${data.name}']`);
-  if (!bossEl) return;
-  const statusText = data.last_killed ? "Killed" : "Alive";
-  bossEl.querySelector(".status").textContent = statusText;
-};
-
-// --- Step 2.3: Update boss when user clicks "Kill" ---
 async function markBossKilled(name) {
-  try {
-    await fetch("/api/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name })
-    });
-    // Backend will broadcast update via SSE
-  } catch (err) {
-    console.error("Failed to update boss:", err);
-  }
+    try {
+        await fetch("/api/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name })
+        });
+    } catch (err) {
+        console.error("Failed to update boss:", err);
+    }
 }
-
-// Example usage: bind to your button
-document.querySelectorAll(".kill-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const bossName = btn.dataset.boss;
-    markBossKilled(bossName);
-  });
-});
