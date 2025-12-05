@@ -476,3 +476,57 @@ headers: { "Content-Type": "application/json" },
 body: JSON.stringify({ name, status: "Killed", respawntime: "30m" }),
 });
 }
+
+// --- Step 2.1: Load initial boss status from MongoDB ---
+async function loadBossStatus() {
+  try {
+    const res = await fetch("/api/get-bosses"); // We'll create this endpoint next
+    const data = await res.json();
+    data.forEach(boss => {
+      const bossEl = document.querySelector(`[data-boss='${boss.name}']`);
+      if (!bossEl) return;
+      const statusText = boss.last_killed ? "Killed" : "Alive";
+      bossEl.querySelector(".status").textContent = statusText;
+      // Optional: show respawn time or calculate next respawn
+    });
+  } catch (err) {
+    console.error("Failed to load boss status:", err);
+  }
+}
+
+// Call on page load
+loadBossStatus();
+
+
+// --- Step 2.2: Connect to SSE for real-time updates ---
+const eventSource = new EventSource("/api/events");
+eventSource.onmessage = (event) => {
+  if (!event.data) return;
+  const data = JSON.parse(event.data);
+  const bossEl = document.querySelector(`[data-boss='${data.name}']`);
+  if (!bossEl) return;
+  const statusText = data.last_killed ? "Killed" : "Alive";
+  bossEl.querySelector(".status").textContent = statusText;
+};
+
+// --- Step 2.3: Update boss when user clicks "Kill" ---
+async function markBossKilled(name) {
+  try {
+    await fetch("/api/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name })
+    });
+    // Backend will broadcast update via SSE
+  } catch (err) {
+    console.error("Failed to update boss:", err);
+  }
+}
+
+// Example usage: bind to your button
+document.querySelectorAll(".kill-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const bossName = btn.dataset.boss;
+    markBossKilled(bossName);
+  });
+});
