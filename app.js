@@ -440,3 +440,39 @@ function confirmDTSelection() {
 
     closeDTModal();
 }
+// --- EXISTING CODE HERE ---
+// Insert this at the top or bottom of your current file
+
+
+// Connect to real-time events
+const eventSource = new EventSource("/api/events");
+
+
+// When backend broadcasts boss update
+eventSource.onmessage = (event) => {
+const data = JSON.parse(event.data);
+updateBossFromRealtime(data);
+};
+
+
+function updateBossFromRealtime({ name, status, respawntime }) {
+// Use your existing DOM update logic
+const bossElement = document.querySelector(`[data-boss='${name}']`);
+if (!bossElement) return;
+
+
+bossElement.querySelector(".status").textContent = status;
+if (respawntime) {
+bossElement.querySelector(".respawn").textContent = respawntime;
+}
+}
+
+
+// Modify your existing "Mark as Kill" button logic
+async function markBoss(name) {
+await fetch("/api/update", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ name, status: "Killed", respawntime: "30m" }),
+});
+}
