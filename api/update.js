@@ -1,46 +1,41 @@
-import clientPromise from "../../lib/mongodb";
-import { getSSEController } from "../../lib/sseController";
-
+// api/update.js
+import clientPromise from "../lib/mongodb.js";
+import { broadcast } from "./events.js";
 
 export const config = {
-runtime: "nodejs",
+  runtime: "nodejs"
 };
 
-
 export default async function handler(req, res) {
-if (req.method !== "POST") return res.status(405).end();
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "POST only" });
+  }
 
+  try {
+    const { name } = JSON.parse(req.body);
+    if (!name) return res.status(400).json({ error: "Missing boss name" });
 
-try {
-const { name, status, respawntime } = req.body;
-if (!name || !status) return res.status(400).json({ error: "Missing fields" });
+    const client = await clientPromise;
+    const db = client.db("galaxy_l9");
 
+    const now = new Date();
 
-const client = await clientPromise;
-const db = client.db("galaxy_l9");
+    await db.collection("bosses").updateOne(
+      { name },
+      { $set: { last_killed: now } }
+    );
 
+    // 🔥 Broadcast the update to all connected clients
+    broadcast({
+      type: "update",
+      name,
+      last_killed: now
+    });
 
-await db.collection("bosses").updateOne(
-{ name },
-{
-$set: {
-name,
-status,
-respawntime: respawntime || null,
-lastUpdated: new Date(),
-},
-},
-{ upsert: true }
-);
+    return res.status(200).json({ success: true });
 
-
-const { broadcast } = getSSEController();
-broadcast({ name, status, respawntime });
-
-
-res.json({ success: true });
-} catch (err) {
-console.error(err);
-res.status(500).json({ error: "Server error" });
-}
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
 }
