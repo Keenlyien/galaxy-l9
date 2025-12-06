@@ -5,7 +5,7 @@ let client = null;
 
 async function getClient() {
     if (!client) {
-        client = new MongoClient(uri, {});
+        client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
         await client.connect();
     }
     return client;
@@ -14,7 +14,7 @@ async function getClient() {
 export default async function handler(req, res) {
     try {
         const client = await getClient();
-        const db = client.db("bossTracker");
+        const db = client.db("galaxy_l9");
         const bosses = await db.collection("bosses").find({}).toArray();
 
         res.status(200).json(bosses);
