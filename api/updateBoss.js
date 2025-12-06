@@ -1,4 +1,4 @@
-import { MongoClient, ObjectId } from "mongodb";
+import { MongoClient } from "mongodb";
 
 let client;
 const uri = process.env.MONGODB_URI;
@@ -6,8 +6,8 @@ const uri = process.env.MONGODB_URI;
 export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
-    const { id, status } = req.body;
-    if (!id || !status) return res.status(400).json({ error: "Missing id or status" });
+    const { bossName, status } = req.body;
+    if (!bossName) return res.status(400).json({ error: "Missing bossName" });
 
     if (!client) {
         client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -17,9 +17,13 @@ export default async function handler(req, res) {
     const db = client.db("galaxy_l9");
     const collection = db.collection("bosses");
 
+    // Convert status to number or null
+    const newStatus = status !== null ? Number(status) : null;
+
     await collection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: { status } }
+        { name: bossName },
+        { $set: { last_killed: newStatus } },
+        { upsert: true }
     );
 
     res.status(200).json({ success: true });
