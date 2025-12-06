@@ -20,12 +20,11 @@ export default async function handler(req, res) {
         const client = await getClient();
         const db = client.db("bossTracker");
 
-        const { bossName, status } = req.body;
+        const { bossName } = req.body;
 
         await db.collection("bosses").updateOne(
             { name: bossName },
-            { $set: { status: status, updatedAt: new Date() } },
-            { upsert: true }
+            { $set: { last_killed: new Date() } }
         );
 
         res.status(200).json({ message: "Updated successfully" });
