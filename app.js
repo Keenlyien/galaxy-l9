@@ -180,6 +180,8 @@ function renderBosses() {
     const container = document.getElementById("boss-container");
     container.innerHTML = "";
 
+    const now = Date.now(); // Capture current time once per render
+
     bosses.forEach((boss, i) => {
         const hours = parseRespawnHours(boss.respawn);
         const weekly = parseWeeklyRespawns(boss.respawn);
@@ -187,23 +189,25 @@ function renderBosses() {
         let timeLeft = 0;
         let status = "Alive";
 
-        if (hours !== null) {
-            const lastKill = localStorage.getItem("boss_kill_" + boss.name);
+        // Get server-synced last_killed from localStorage
+        const lastKill = parseInt(localStorage.getItem("boss_kill_" + boss.name), 10);
 
+        if (hours !== null) {
             if (lastKill) {
                 const respawnMs = hours * 3600 * 1000;
-                let elapsed = Date.now() - parseInt(lastKill);
+                let elapsed = now - lastKill; // difference from server timestamp
                 if (elapsed < 0) elapsed = 0;
                 timeLeft = respawnMs - elapsed;
                 if (timeLeft < 0) timeLeft = 0;
 
                 status = timeLeft > 0 ? LANG[currentLang].dead : LANG[currentLang].alive;
+            } else {
+                timeLeft = 0;
+                status = LANG[currentLang].alive;
             }
-
         } else if (weekly) {
-
             const nextSpawn = getNextWeeklySpawn(weekly);
-            timeLeft = nextSpawn - new Date();
+            timeLeft = nextSpawn - now;
             if (timeLeft < 0) timeLeft = 0;
 
             status = timeLeft > 0 ? LANG[currentLang].dead : LANG[currentLang].alive;
@@ -211,7 +215,6 @@ function renderBosses() {
 
         const card = document.createElement("div");
         card.className = `boss-card ${hours !== null ? (timeLeft > 0 ? "dead" : "alive") : "scheduled"}`;
-
         card.setAttribute("data-boss", boss.name);
 
         card.innerHTML = `
@@ -228,7 +231,6 @@ function renderBosses() {
                     <button class="datetime-picker-btn" onclick="openDTModal(${i})">
                         ${LANG[currentLang].pick_datetime}
                     </button>
-
                     <input type="datetime-local" class="datetime-input" id="dt_${i}">
                     <div class="datetime-display" id="dt_display_${i}">
                         ${LANG[currentLang].no_date}
@@ -251,9 +253,10 @@ function renderBosses() {
 
         container.appendChild(card);
 
-        if (timeLeft > 0) startTimer(i, timeLeft);
+        if (timeLeft > 0) startTimer(i, timeLeft); // start countdown from server timestamp
     });
 }
+
 
 /* -----------------------------
    IMAGE SUPPORT
@@ -371,6 +374,7 @@ function startTimer(id, timeLeft) {
 
     tick();
 }
+
 
 /* -----------------------------
    FORMATTER
