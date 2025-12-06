@@ -1,6 +1,19 @@
 // Redirect if not logged in
 let currentLang = 'en'; // default language
 
+// Optional: real-time updates via SSE
+const evtSource = new EventSource("/api/stream");
+evtSource.onmessage = async (event) => {
+    const dbBosses = JSON.parse(event.data);
+    dbBosses.forEach(d => {
+        const serverVal = d.last_killed ?? null;
+        if (serverVal) localStorage.setItem("boss_kill_" + d.name, String(serverVal));
+        else localStorage.removeItem("boss_kill_" + d.name);
+    });
+    renderBosses();
+};
+
+
 // --- BACKEND UPDATE FUNCTIONS ---
 // Update DB then re-sync immediately
 async function updateBoss(name, killedAt) {
