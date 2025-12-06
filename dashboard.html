@@ -1,44 +1,67 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Boss Tracker</title>
+    <title>Boss Tracker Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
+
+<!-- Date/Time Modal -->
+<div id="dt-modal" class="dt-modal hidden">
+    <div class="dt-modal-content">
+
+        <h2 class="dt-title">Select Date & Time</h2>
+
+        <!-- Calendar Header -->
+        <div class="dt-cal-header">
+            <button id="dt-prev-month" class="dt-nav-btn">◀</button>
+            <span id="dt-month-label"></span>
+            <button id="dt-next-month" class="dt-nav-btn">▶</button>
+        </div>
+
+        <!-- Calendar Grid -->
+        <div class="dt-calendar">
+            <div class="dt-weekdays">
+                <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
+                <span>Thu</span><span>Fri</span><span>Sat</span>
+            </div>
+            <div id="dt-days" class="dt-days"></div>
+        </div>
+
+        <!-- Time Picker -->
+        <div class="dt-time-section">
+            <label>Time:</label>
+            <select id="dt-hour"></select>
+            :
+            <select id="dt-minute"></select>
+        </div>
+
+        <!-- Buttons -->
+        <div class="dt-modal-buttons">
+            <button class="dt-cancel" onclick="closeDTModal()">Cancel</button>
+            <button class="dt-confirm" onclick="confirmDTSelection()">Confirm</button>
+        </div>
+
+    </div>
+</div>
+
+
 <body>
-    <h1>Boss Tracker</h1>
-    <div id="boss-list"></div>
 
-    <script>
-        const bossContainer = document.getElementById("boss-list");
+<div class="header">
+    <h1 class="header-title">L9 Galaxy Field Boss Schedule</h1>
+    <button class="btn logout-btn" onclick="logout()">Logout</button>
+    <select id="lang-select" onchange="setLanguage(this.value)">
+    <option value="en">English</option>
+    <option value="th">ไทย</option>
+</select>
 
-        // SSE connection to stream live updates
-        const evtSource = new EventSource("/api/stream");
-        evtSource.onmessage = function(event) {
-            const bosses = JSON.parse(event.data);
-            bossContainer.innerHTML = "";
+</div>
 
-            bosses.forEach(boss => {
-                const div = document.createElement("div");
-                div.innerHTML = `
-                    <strong>${boss.name}</strong> - Status: <span id="status-${boss._id}">${boss.status}</span>
-                    <button onclick="updateBoss('${boss._id}')">Toggle Status</button>
-                `;
-                bossContainer.appendChild(div);
-            });
-        };
+<div id="boss-container" class="boss-container"></div>
 
-        // Update boss status
-        async function updateBoss(id) {
-            const currentStatus = document.getElementById(`status-${id}`).textContent;
-            const newStatus = currentStatus === "Alive" ? "Dead" : "Alive";
+<script src="lang.js"></script>
+<script src="app.js"></script>
 
-            await fetch("/api/updateBoss", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id, status: newStatus })
-            });
-            // SSE will automatically push updated data, no reload needed
-        }
-    </script>
+
 </body>
 </html>
