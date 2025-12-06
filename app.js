@@ -2,36 +2,58 @@
 let currentLang = 'en'; // default language
 
 // --- BACKEND UPDATE FUNCTIONS ---
+// Update DB then re-sync immediately
 async function updateBoss(name, killedAt) {
-    await fetch("/api/updateBoss", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bossName: name, status: killedAt })
-    });
+    try {
+        await fetch("/api/updateBoss", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bossName: name, status: killedAt })
+        });
+    } catch (err) {
+        console.error("updateBoss POST failed:", err);
+        throw err;
+    }
 }
 
+// Load from server (force no-cache) and sync localStorage
 async function loadBossStatusFromDB() {
     try {
-        const res = await fetch("/api/getBosses");
+        const res = await fetch("/api/getBosses", { cache: "no-store" });
+        if (!res.ok) {
+            console.error("getBosses failed:", res.status, await res.text());
+            return;
+        }
         const dbBosses = await res.json();
 
         dbBosses.forEach(d => {
-            // Replace local kill time with server kill time
-            if (d.status) {
-                localStorage.setItem("boss_kill_" + d.name, d.status);
+            // Use last_killed (DB field). Accept either `last_killed` or `status` for compatibility.
+            const serverVal = d.last_killed ?? d.status ?? null;
+
+            if (serverVal) {
+                // If serverVal is a Date string, convert to number; if it's number already, keep it.
+                const ts = typeof serverVal === "string" ? Date.parse(serverVal) : Number(serverVal);
+                if (!isNaN(ts)) {
+                    localStorage.setItem("boss_kill_" + d.name, String(ts));
+                } else {
+                    // If parsing failed, remove key to treat as alive
+                    localStorage.removeItem("boss_kill_" + d.name);
+                }
             } else {
                 localStorage.removeItem("boss_kill_" + d.name);
             }
         });
 
+        // Re-render using updated localStorage values
         renderBosses();
     } catch (err) {
         console.error("Failed loading from DB:", err);
     }
 }
 
-// Poll server every 5 seconds
-setInterval(loadBossStatusFromDB, 5000);
+// Poll server every 5 seconds (keep this)
+const POLL_INTERVAL_MS = 5000;
+setInterval(loadBossStatusFromDB, POLL_INTERVAL_MS);
 
 // Run once at page load
 loadBossStatusFromDB();
@@ -265,31 +287,51 @@ function parseLocalDateTime(value) {
    KILL / UNKILL (PATCHED)
 ----------------------------- */
 
+/* -----------------------------
+   KILL / UNKILL (PATCHED)
+----------------------------- */
+
 async function killBoss(i) {
     const input = document.getElementById(`dt_${i}`);
-    const selected = input.value
+    const selected = input && input.value
         ? parseLocalDateTime(input.value)
         : Date.now();
 
     const killTime = Math.min(selected, Date.now());
 
-    // Save local copy (UI only)
-    localStorage.setItem("boss_kill_" + bosses[i].name, killTime);
+    // Save local copy (instant UI)
+    localStorage.setItem("boss_kill_" + bosses[i].name, String(killTime));
 
     // UPDATE MONGODB
-    await updateBoss(bosses[i].name, killTime);
+    try {
+        await updateBoss(bosses[i].name, killTime);
+    } catch (err) {
+        // if update fails, leave localStorage as-is but log error
+        console.error("Failed to update server when killing:", err);
+    }
 
-    renderBosses();
+    // Immediately re-sync from server to ensure all browsers get same canonical source
+    await loadBossStatusFromDB();
+
+    // renderBosses() already called by loadBossStatusFromDB()
 }
-
 
 async function unkillBoss(i) {
     localStorage.removeItem("boss_kill_" + bosses[i].name);
 
-    // Update MongoDB (status = null)
-    await updateBoss(bosses[i].name, null);
+    try {
+        // Tell server to clear kill time (we send null; server should set last_killed to null)
+        await fetch("/api/updateBoss", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bossName: bosses[i].name, status: null })
+        });
+    } catch (err) {
+        console.error("Failed to update server when un-killing:", err);
+    }
 
-    renderBosses();
+    // Immediately re-sync
+    await loadBossStatusFromDB();
 }
 
 
