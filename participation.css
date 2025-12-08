@@ -1,0 +1,71 @@
+/* ============================
+    FIX HEADER & PAGE LAYOUT
+============================ */
+
+/* Make page content not hidden behind sidebar */
+.page-content {
+    padding: 20px;
+    margin-left: 260px; /* same width as sidebar */
+}
+
+/* Title & text styling */
+.page-content h2 {
+    font-size: 26px;
+    margin-bottom: 10px;
+}
+
+.subtext {
+    opacity: 0.75;
+    margin-bottom: 20px;
+}
+
+/* ============================
+     ACTIVE LINK IN SIDEBAR
+============================ */
+.sidebar {
+    z-index:2000;
+}
+
+.sidebar a.active {
+    background: #4c6ef5;
+    color: #fff !important;
+    font-weight: bold;
+}
+
+.overlay {
+    z-index: 2000;
+    
+}
+
+/* ============================
+     HAMBURGER FIX
+============================ */
+
+/* Make hamburger always clickable (above header) */
+.hamburger {
+    z-index: 3000;
+    position: fixed;
+}
+
+/* ============================
+     OPTIONAL: HEADER SAFETY
+============================ */
+.header {
+    z-index: 1000; /* ensures header stays above content but below hamburger */
+    position: relative;
+}
+
+/* ============================
+     LANGUAGE DROPDOWN FIX
+============================ */
+#lang-select {
+    z-index: 1200;
+}
+
+/* ============================
+     OVERLAY FIX
+============================ */
+
+#overlay {
+    z-index: 1500; /* below hamburger, above page */
+}

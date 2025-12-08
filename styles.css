@@ -63,8 +63,8 @@ body {
 
 #lang-select {
     position: absolute;
-    left: 40px;                   /* top-left alignment */
-    top: 50%;
+    left: 50px;                   /* top-left alignment */
+    top: 31%;
     transform: translateY(-50%);
     padding: 8px 12px;
     background: #222328;

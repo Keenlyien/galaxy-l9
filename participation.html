@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boss Participation</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="participation.css">
+</head>
+<body>
+
+<!-- Hamburger Button -->
+<div id="hamburger" class="hamburger">☰</div>
+
+<!-- Sidebar -->
+<div id="sidebar" class="sidebar">
+    <div class="sidebar-header">Menu</div>
+    <a href="dashboard.html">Boss Tracker</a>
+    <a href="participation.html" class="active">Boss Participation</a>
+</div>
+
+<!-- Overlay -->
+<div id="overlay" class="overlay"></div>
+
+<!-- Header -->
+<div class="header">
+    <h1 class="header-title">Boss Participation</h1>
+    <button class="btn logout-btn" onclick="logout()">Logout</button>
+    <select id="lang-select" onchange="setLanguage(this.value)">
+        <option value="en">English</option>
+        <option value="th">ไทย</option>
+    </select>
+</div>
+
+<!-- Main content -->
+<div class="main-content">
+    <section class="page-content">
+        <h2>Boss Participation</h2>
+        <p>Here you can track participation for each boss.</p>
+    </section>
+</div>
+
+<!-- Scripts -->
+<script src="lang.js"></script>
+<script src="app.js"></script>
+<script>
+  // Ensure sidebar toggling works
+  document.addEventListener("DOMContentLoaded", () => {
+      const sidebar = document.getElementById("sidebar");
+      const hamburger = document.getElementById("hamburger");
+      const overlay = document.getElementById("overlay");
+
+      hamburger.addEventListener("click", () => {
+          sidebar.style.left = "0";
+          overlay.style.display = "block";
+      });
+
+      overlay.addEventListener("click", () => {
+          sidebar.style.left = "-260px";
+          overlay.style.display = "none";
+      });
+  });
+</script>
+</body>
+</html>
