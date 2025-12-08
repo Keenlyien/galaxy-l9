@@ -532,4 +532,25 @@ function confirmDTSelection() {
     closeDTModal();
 }
 
+// --- Sidebar / Hamburger Menu ---
+document.addEventListener("DOMContentLoaded", () => {
+    const sidebar = document.getElementById("sidebar");
+    const hamburger = document.getElementById("hamburger");
+    const overlay = document.getElementById("overlay");
+
+    if (hamburger) {
+        hamburger.addEventListener("click", () => {
+            sidebar.style.left = "0";
+            overlay.style.display = "block";
+        });
+    }
+
+    if (overlay) {
+        overlay.addEventListener("click", () => {
+            sidebar.style.left = "-260px";
+            overlay.style.display = "none";
+        });
+    }
+});
+
 

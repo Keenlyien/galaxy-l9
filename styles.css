@@ -388,4 +388,61 @@ body {
     padding: 0;          /* remove extra padding for uniformity */
 }
 
+/* Hamburger Button */
+.hamburger {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    font-size: 28px;
+    cursor: pointer;
+    z-index: 2000;
+    color: white;
+}
+
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 260px;
+    height: 100%;
+    background: #111827;
+    color: white;
+    padding-top: 60px;
+    transition: left 0.3s ease;
+    z-index: 1999;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.4);
+}
+
+.sidebar a {
+    display: block;
+    padding: 15px 20px;
+    font-size: 18px;
+    color: #d1d5db;
+    text-decoration: none;
+}
+
+.sidebar a:hover {
+    background: #374151;
+    color: white;
+}
+
+.sidebar-header {
+    font-size: 20px;
+    padding: 20px;
+    font-weight: bold;
+    border-bottom: 1px solid #333;
+}
+
+/* Overlay */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    z-index: 1500;
+}
 
