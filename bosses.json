@@ -13,6 +13,15 @@
     "location": "Black Storm Peninsula",
     "last_killed": null
   },
+
+  {
+    "name": "Neutro",
+    "level": 80,
+    "respawn": "Tuesday 19:00, Thursday 11:30",
+    "location": "Bloody Shadow",
+    "last_killed": null
+  },
+  
   {
     "name": "Lady Dalia",
     "level": 85,

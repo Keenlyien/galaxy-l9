@@ -266,6 +266,7 @@ function getBossImage(name) {
     const images = {
         "Venatus": "images/Venatus.png",
         "Livera": "images/Livera.png",
+        "Neutro": "images/Neutro.png",
         "Lady Dalia": "images/Lady_Dalia.png",
         "Thymele": "images/Thymele.png",
         "Baron Braudmore": "images/Baron_Braudmore.png",
