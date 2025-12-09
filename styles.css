@@ -63,8 +63,8 @@ body {
 
 #lang-select {
     position: absolute;
-    left: 50px;                   /* top-left alignment */
-    top: 31%;
+    left: 70px;                   /* moved right to avoid hamburger overlap */
+    top: 39%;
     transform: translateY(-50%);
     padding: 8px 12px;
     background: #222328;
@@ -89,6 +89,7 @@ body {
     display: none;
 }
 
+/* HEADER */
 
 .header-title {
     font-size: 28px;
@@ -171,12 +172,29 @@ body {
     gap: 10px;
 }
 
+/* Kill and Unkill Buttons and Hovers */
 .kill-btn {
     background: #ff4d4d;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+    transform-origin: center;
+    box-shadow: 0 4px 12px rgba(255, 77, 77, 0.3);
+}
+
+.kill-btn:hover {
+    transform: scale(1.15);
+    box-shadow: 0 8px 25px rgba(255, 77, 77, 0.6);
 }
 
 .unkill-btn {
     background: #3a3a3a;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+    transform-origin: center;
+    box-shadow: 0 4px 12px rgba(100, 100, 100, 0.3);
+}
+
+.unkill-btn:hover {
+    transform: scale(1.15);
+    box-shadow: 0 8px 25px rgba(100, 100, 100, 0.6);
 }
 
 /* ==== DATETIME BUTTON SYSTEM ==== */
@@ -397,6 +415,18 @@ body {
     cursor: pointer;
     z-index: 2000;
     color: white;
+    transition: all 0.3s ease;
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+
+.hamburger:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+}
+
+.hamburger.active {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 /* Sidebar */
@@ -414,17 +444,23 @@ body {
     box-shadow: 2px 0 10px rgba(0,0,0,0.4);
 }
 
+.sidebar.open {
+    left: 0;
+}
+
 .sidebar a {
     display: block;
     padding: 15px 20px;
     font-size: 18px;
     color: #d1d5db;
     text-decoration: none;
+    transition: all 0.2s ease;
 }
 
 .sidebar a:hover {
     background: #374151;
     color: white;
+    padding-left: 30px;
 }
 
 .sidebar-header {
@@ -444,5 +480,10 @@ body {
     background: rgba(0,0,0,0.5);
     display: none;
     z-index: 1500;
+    transition: opacity 0.3s ease;
+}
+
+.overlay.active {
+    display: block;
 }
 

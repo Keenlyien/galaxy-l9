@@ -537,20 +537,40 @@ document.addEventListener("DOMContentLoaded", () => {
     const sidebar = document.getElementById("sidebar");
     const hamburger = document.getElementById("hamburger");
     const overlay = document.getElementById("overlay");
+    let sidebarOpen = false;
+
+    function toggleSidebar() {
+        sidebarOpen = !sidebarOpen;
+        
+        if (sidebarOpen) {
+            sidebar.classList.add("open");
+            overlay.classList.add("active");
+            hamburger.classList.add("active");
+        } else {
+            sidebar.classList.remove("open");
+            overlay.classList.remove("active");
+            hamburger.classList.remove("active");
+        }
+    }
+
+    function closeSidebar() {
+        sidebarOpen = false;
+        sidebar.classList.remove("open");
+        overlay.classList.remove("active");
+        hamburger.classList.remove("active");
+    }
 
     if (hamburger) {
-        hamburger.addEventListener("click", () => {
-            sidebar.style.left = "0";
-            overlay.style.display = "block";
-        });
+        hamburger.addEventListener("click", toggleSidebar);
     }
 
     if (overlay) {
-        overlay.addEventListener("click", () => {
-            sidebar.style.left = "-260px";
-            overlay.style.display = "none";
-        });
+        overlay.addEventListener("click", closeSidebar);
     }
-});
 
+    // Close sidebar when clicking a link
+    document.querySelectorAll(".sidebar a").forEach(link => {
+        link.addEventListener("click", closeSidebar);
+    });
+});
 
