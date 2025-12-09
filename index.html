@@ -14,6 +14,9 @@
     <input type="password" id="password" placeholder="Password">
 
     <button class="btn" onclick="login()">Login</button>
+    
+    <!-- Custom notification -->
+    <div id="login-notification" class="login-notification"></div>
 </div>
 
 
@@ -28,15 +31,27 @@ fetch("config.json")
     .then(data => CONFIG = data)
     .catch(err => {
         console.error("Failed to load config.json", err);
-        alert("Error loading configuration.");
+        showNotification("Error loading configuration.", "error");
     });
+
+function showNotification(message, type = "error") {
+    const notif = document.getElementById("login-notification");
+    notif.textContent = message;
+    notif.className = "login-notification " + type;
+    notif.style.display = "block";
+    
+    // Auto-hide after 4 seconds
+    setTimeout(() => {
+        notif.style.display = "none";
+    }, 4000);
+}
 
 function login() {
     const user = document.getElementById("username").value.trim();
     const pass = document.getElementById("password").value.trim();
 
     if (!CONFIG) {
-        alert("Configuration not loaded yet. Try again.");
+        showNotification("Configuration not loaded yet. Try again.", "error");
         return;
     }
 
@@ -44,9 +59,24 @@ function login() {
         localStorage.setItem("logged_in", "true");
         window.location.href = "dashboard.html";
     } else {
-        alert("Invalid login.");
+        showNotification("Login failed: Username and password do not match", "error");
     }
 }
+
+// Add Enter key listener to password input
+document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("password").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            login();
+        }
+    });
+    
+    document.getElementById("username").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            login();
+        }
+    });
+});
 </script>
 
 
