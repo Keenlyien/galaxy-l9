@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Boss Tracker - View Only</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<div class="header">
+    <h1 class="header-title">L9 Galaxy Field Boss Schedule</h1>
+    <select id="lang-select" onchange="setLanguage(this.value)">
+        <option value="en">English</option>
+        <option value="th">ไทย</option>
+    </select>
+</div>
+
+<div id="boss-container" class="boss-container"></div>
+
+<!-- Scripts -->
+<script src="lang.js"></script>
+<script>
+    // Global config storage
+    let currentLang = 'en';
+    let bosses = [];
+
+    // Optional: real-time updates via SSE
+    const evtSource = new EventSource("/api/stream");
+    evtSource.onmessage = async (event) => {
+        const dbBosses = JSON.parse(event.data);
+        dbBosses.forEach(d => {
+            const serverVal = d.last_killed ?? null;
+            if (serverVal) localStorage.setItem("boss_kill_" + d.name, String(serverVal));
+            else localStorage.removeItem("boss_kill_" + d.name);
+        });
+        renderBosses();
+    };
+
+    // Load from server (force no-cache) and sync localStorage
+    async function loadBossStatusFromDB() {
+        try {
+            const res = await fetch("/api/getBosses", { cache: "no-store" });
+            if (!res.ok) {
+                console.error("getBosses failed:", res.status, await res.text());
+                return;
+            }
+            const dbBosses = await res.json();
+
+            dbBosses.forEach(d => {
+                const serverVal = d.last_killed ?? d.status ?? null;
+
+                if (serverVal) {
+                    const ts = typeof serverVal === "string" ? Date.parse(serverVal) : Number(serverVal);
+                    if (!isNaN(ts)) {
+                        localStorage.setItem("boss_kill_" + d.name, String(ts));
+                    } else {
+                        localStorage.removeItem("boss_kill_" + d.name);
+                    }
+                } else {
+                    localStorage.removeItem("boss_kill_" + d.name);
+                }
+            });
+
+            renderBosses();
+        } catch (err) {
+            console.error("Failed loading from DB:", err);
+        }
+    }
+
+    // Poll server every 5 seconds
+    const POLL_INTERVAL_MS = 5000;
+    setInterval(loadBossStatusFromDB, POLL_INTERVAL_MS);
+
+    // Run once at page load
+    loadBossStatusFromDB();
+
+    function setLanguage(lang) {
+        currentLang = lang;
+
+        if (document.querySelector(".header-title")) {
+            document.querySelector(".header-title").textContent = LANG[lang].boss_schedule_title;
+        }
+
+        if (typeof renderBosses === "function") renderBosses();
+    }
+
+    // Load bosses.json
+    fetch("bosses.json")
+        .then(res => res.json())
+        .then(data => {
+            bosses = data;
+            renderBosses();
+        });
+
+    /* Parsing Helpers */
+    function parseRespawnHours(text) {
+        const match = text.match(/(\d+)\s*Hour/);
+        return match ? parseInt(match[1], 10) : null;
+    }
+
+    function parseWeeklyRespawns(text) {
+        const entries = text.split(",").map(t => t.trim());
+        const times = [];
+
+        entries.forEach(entry => {
+            const match =
+                entry.match(/(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\d{1,2}):(\d{2})/i);
+
+            if (match) {
+                times.push({
+                    weekday: match[1],
+                    hour: parseInt(match[2]),
+                    minute: parseInt(match[3])
+                });
+            }
+        });
+
+        return times.length > 0 ? times : null;
+    }
+
+    function weekdayToIndex(day) {
+        return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].indexOf(day);
+    }
+
+    function getNextWeeklySpawn(schedule) {
+        const now = new Date();
+        const today = now.getDay();
+        const nowMs = now.getTime();
+
+        let soonest = null;
+
+        schedule.forEach(item => {
+            const targetDay = weekdayToIndex(item.weekday);
+            const date = new Date(now);
+
+            let diff = targetDay - today;
+            if (diff < 0) diff += 7;
+
+            date.setDate(now.getDate() + diff);
+            date.setHours(item.hour, item.minute, 0, 0);
+
+            if (date.getTime() <= nowMs) {
+                date.setDate(date.getDate() + 7);
+            }
+
+            if (!soonest || date < soonest) soonest = date;
+        });
+
+        return soonest;
+    }
+
+    function formatTime(ms) {
+        const totalSeconds = Math.floor(ms / 1000);
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        if (days > 0) {
+            return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        } else if (hours > 0) {
+            return `${hours}h ${minutes}m ${seconds}s`;
+        } else if (minutes > 0) {
+            return `${minutes}m ${seconds}s`;
+        } else {
+            return `${seconds}s`;
+        }
+    }
+
+    function startTimer(i, initialTimeLeft) {
+        const timerId = setInterval(() => {
+            const timerEl = document.getElementById(`timer_${i}`);
+            if (!timerEl) {
+                clearInterval(timerId);
+                return;
+            }
+
+            initialTimeLeft -= 1000;
+            if (initialTimeLeft <= 0) {
+                timerEl.innerHTML = LANG[currentLang].alive;
+                clearInterval(timerId);
+            } else {
+                timerEl.innerHTML = formatTime(initialTimeLeft);
+            }
+        }, 1000);
+    }
+
+    function getBossImage(name) {
+        const images = {
+            "Venatus": "images/Venatus.png",
+            "Livera": "images/Livera.png",
+            "Neutro": "images/Neutro.png",
+            "Lady Dalia": "images/Lady_Dalia.png",
+            "Thymele": "images/Thymele.png",
+            "Baron Braudmore": "images/Baron_Braudmore.png",
+            "Milavy": "images/Milavy.png",
+            "Wannitas": "images/Wannitas.png",
+            "Duplican": "images/Duplican.png",
+            "Shuliar": "images/Shuliar.png",
+            "Titore": "images/Titore.png",
+            "Larba": "images/Larba.png",
+            "Catena": "images/Catena.png",
+            "Auraq": "images/Auraq.png",
+            "Secreta": "images/Secreta.png",
+            "Ordo": "images/Ordo.png",
+            "Asta": "images/Asta.png",
+            "Chaiflock": "images/Chaiflock.png",
+            "Benji": "images/Benji.png",
+        };
+
+        return images[name] || "images/default.png";
+    }
+
+    /* Main Render - READ ONLY VERSION */
+    function renderBosses() {
+        const container = document.getElementById("boss-container");
+        container.innerHTML = "";
+
+        const now = Date.now();
+
+        bosses.forEach((boss, i) => {
+            const hours = parseRespawnHours(boss.respawn);
+            const weekly = parseWeeklyRespawns(boss.respawn);
+
+            let timeLeft = 0;
+            let status = "Alive";
+
+            const lastKill = parseInt(localStorage.getItem("boss_kill_" + boss.name), 10);
+
+            if (hours !== null) {
+                if (lastKill) {
+                    const respawnMs = hours * 3600 * 1000;
+                    let elapsed = now - lastKill;
+                    if (elapsed < 0) elapsed = 0;
+                    timeLeft = respawnMs - elapsed;
+                    if (timeLeft < 0) timeLeft = 0;
+
+                    status = timeLeft > 0 ? LANG[currentLang].dead : LANG[currentLang].alive;
+                } else {
+                    timeLeft = 0;
+                    status = LANG[currentLang].alive;
+                }
+            } else if (weekly) {
+                const nextSpawn = getNextWeeklySpawn(weekly);
+                timeLeft = nextSpawn - now;
+                if (timeLeft < 0) timeLeft = 0;
+
+                status = timeLeft > 0 ? LANG[currentLang].dead : LANG[currentLang].alive;
+            }
+
+            const card = document.createElement("div");
+            card.className = `boss-card ${hours !== null ? (timeLeft > 0 ? "dead" : "alive") : "scheduled"}`;
+            card.setAttribute("data-boss", boss.name);
+
+            // READ-ONLY: No buttons, just display information
+            card.innerHTML = `
+                <div class="boss-content">
+                    <div class="boss-left">
+                        <div class="boss-title">${boss.name} <span style="opacity:0.8; font-size:16px;">(Lv. ${boss.level})</span></div>
+                        <div class="boss-sub">${boss.location}</div>
+                        <div class="boss-sub respawn">${LANG[currentLang].respawn}: ${boss.respawn}</div>
+                        <div class="timer status" id="timer_${i}">
+                            ${timeLeft > 0 ? formatTime(timeLeft) : LANG[currentLang].alive}
+                        </div>
+                    </div>
+
+                    <div class="boss-right">
+                        <img src="${getBossImage(boss.name)}" class="boss-image">
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(card);
+
+            if (timeLeft > 0) startTimer(i, timeLeft);
+        });
+    }
+</script>
+
+</body>
+
+</html>
