@@ -65,6 +65,13 @@
     "last_killed": null
   },
   {
+    "name": "Roderick",
+    "level": 95,
+    "respawn": "Friday 19:00",
+    "location": "Garbana Underground Waterway 1F",
+    "last_killed": null
+  }, 
+  {
     "name": "Shuliar",
     "level": 95,
     "respawn": "35 Hours",
