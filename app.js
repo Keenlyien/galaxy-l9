@@ -274,6 +274,7 @@ function getBossImage(name) {
         "Wannitas": "images/Wannitas.png",
         "Duplican": "images/Duplican.png",
         "Shuliar": "images/Shuliar.png",
+        "Roderick": "images/Roderick.png",
         "Titore": "images/Titore.png",
         "Larba": "images/Larba.png",
         "Catena": "images/Catena.png",
