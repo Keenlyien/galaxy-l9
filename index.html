@@ -23,6 +23,19 @@
 
 <script>
 // global config storage
+// Auto-redirect if still logged in and not expired
+const loginFlag = localStorage.getItem("logged_in");
+const loginExpiry = localStorage.getItem("login_expiry");
+
+if (
+    loginFlag === "true" &&
+    loginExpiry &&
+    Date.now() < Number(loginExpiry)
+) {
+    window.location.href = "dashboard.html";
+}
+
+
 let CONFIG = null;
 
 // load config.json
@@ -56,9 +69,13 @@ function login() {
     }
 
     if (user === CONFIG.username && pass === CONFIG.password) {
-        localStorage.setItem("logged_in", "true");
-        window.location.href = "dashboard.html";
-    } else {
+    const LOGIN_DURATION = 12 * 60 * 60 * 1000; // 12 hours
+
+    localStorage.setItem("logged_in", "true");
+    localStorage.setItem("login_expiry", Date.now() + LOGIN_DURATION);
+
+    window.location.href = "dashboard.html";
+} else {
         showNotification("Login failed: Username and password do not match", "error");
     }
 }

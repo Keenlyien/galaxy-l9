@@ -1,6 +1,7 @@
 // Redirect if not logged in
 let currentLang = 'en'; // default language
 
+
 // Optional: real-time updates via SSE
 const evtSource = new EventSource("/api/stream");
 evtSource.onmessage = async (event) => {
@@ -93,14 +94,30 @@ function setLanguage(lang) {
     if (typeof renderBosses === "function") renderBosses();
 }
 
-if (localStorage.getItem("logged_in") !== "true") {
+// -----------------------------
+// LOGIN PERSISTENCE (12 HOURS)
+// -----------------------------
+const LOGIN_DURATION = 12 * 60 * 60 * 1000; // 12 hours
+
+const loginFlag = localStorage.getItem("logged_in");
+const loginExpiry = localStorage.getItem("login_expiry");
+
+if (
+    loginFlag !== "true" ||
+    !loginExpiry ||
+    Date.now() > Number(loginExpiry)
+) {
+    localStorage.removeItem("logged_in");
+    localStorage.removeItem("login_expiry");
     window.location.href = "index.html";
 }
 
 function logout() {
     localStorage.removeItem("logged_in");
+    localStorage.removeItem("login_expiry");
     window.location.href = "index.html";
 }
+
 
 let bosses = [];
 
