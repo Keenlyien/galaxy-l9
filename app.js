@@ -120,6 +120,8 @@ function logout() {
 
 
 let bosses = [];
+let currentSort = "default";
+
 
 // Load bosses.json
 fetch("bosses.json")
@@ -199,20 +201,77 @@ function renderBosses() {
 
     const now = Date.now(); // Capture current time once per render
 
-    bosses.forEach((boss, i) => {
+    // -----------------------------
+    // SORTING (INSERTED HERE)
+    // -----------------------------
+    let sortedBosses = [...bosses];
+
+    function getSortData(boss) {
+        const hours = parseRespawnHours(boss.respawn);
+        const weekly = parseWeeklyRespawns(boss.respawn);
+        const lastKill = parseInt(localStorage.getItem("boss_kill_" + boss.name), 10);
+
+        let timeLeft = 0;
+        let type = "alive";
+
+        if (hours !== null) {
+            if (lastKill) {
+                const respawnMs = hours * 3600 * 1000;
+                timeLeft = respawnMs - (now - lastKill);
+                if (timeLeft < 0) timeLeft = 0;
+                type = timeLeft > 0 ? "dead" : "alive";
+            }
+        } else if (weekly) {
+            const nextSpawn = getNextWeeklySpawn(weekly);
+            timeLeft = nextSpawn - now;
+            if (timeLeft < 0) timeLeft = 0;
+            type = timeLeft > 0 ? "scheduled" : "alive";
+        }
+
+        return { timeLeft, type };
+    }
+
+    if (currentSort === "level") {
+        sortedBosses.sort((a, b) => b.level - a.level);
+    }
+
+    if (currentSort === "respawn") {
+    sortedBosses.sort((a, b) => {
+        const A = getSortData(a);
+        const B = getSortData(b);
+
+        const aHasTimer = A.timeLeft > 0;
+        const bHasTimer = B.timeLeft > 0;
+
+        // Bosses with upcoming respawns first
+        if (aHasTimer && !bHasTimer) return -1;
+        if (!aHasTimer && bHasTimer) return 1;
+
+        // Both have timers → soonest first
+        if (aHasTimer && bHasTimer) {
+            return A.timeLeft - B.timeLeft;
+        }
+
+        // Both alive → keep original order
+        return 0;
+    });
+}
+    // -----------------------------
+    // RENDER (UNCHANGED LOGIC)
+    // -----------------------------
+    sortedBosses.forEach((boss, i) => {
         const hours = parseRespawnHours(boss.respawn);
         const weekly = parseWeeklyRespawns(boss.respawn);
 
         let timeLeft = 0;
         let status = "Alive";
 
-        // Get server-synced last_killed from localStorage
         const lastKill = parseInt(localStorage.getItem("boss_kill_" + boss.name), 10);
 
         if (hours !== null) {
             if (lastKill) {
                 const respawnMs = hours * 3600 * 1000;
-                let elapsed = now - lastKill; // difference from server timestamp
+                let elapsed = now - lastKill;
                 if (elapsed < 0) elapsed = 0;
                 timeLeft = respawnMs - elapsed;
                 if (timeLeft < 0) timeLeft = 0;
@@ -262,7 +321,7 @@ function renderBosses() {
 
             ${hours !== null ? `
             <div class="btn-row">
-                <button class="btn kill-btn" data-boss="${boss.name}" onclick="killBoss(${i})">${LANG[currentLang].kill}</button>
+                <button class="btn kill-btn" onclick="killBoss(${i})">${LANG[currentLang].kill}</button>
                 <button class="btn unkill-btn" onclick="unkillBoss(${i})">${LANG[currentLang].unkill}</button>
             </div>
             ` : ""}
@@ -270,9 +329,10 @@ function renderBosses() {
 
         container.appendChild(card);
 
-        if (timeLeft > 0) startTimer(i, timeLeft); // start countdown from server timestamp
+        if (timeLeft > 0) startTimer(i, timeLeft);
     });
 }
+
 
 
 /* -----------------------------
@@ -593,3 +653,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+document.addEventListener("DOMContentLoaded", () => {
+    const sortSelect = document.getElementById("sortSelect");
+    if (sortSelect) {
+        sortSelect.addEventListener("change", e => {
+            currentSort = e.target.value;
+            renderBosses();
+        });
+    }
+});
+    
