@@ -14,6 +14,11 @@ evtSource.onmessage = async (event) => {
     renderBosses();
 };
 
+//TIMEZONE SUPPORT
+// === TIMEZONE (SCHEDULED BOSSES ONLY) ===
+const BASE_TZ_OFFSET = 8; // schedules are written in UTC+8
+let currentTzOffset = Number(localStorage.getItem("tz_offset")) || 8;
+
 
 // --- BACKEND UPDATE FUNCTIONS ---
 // Update DB then re-sync immediately
@@ -166,30 +171,37 @@ function weekdayToIndex(day) {
 
 function getNextWeeklySpawn(schedule) {
     const now = new Date();
-    const today = now.getDay();
-    const nowMs = now.getTime();
+
+    // Convert "now" to UTC
+    const nowUtcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+
+    // Convert UTC → BASE schedule timezone (UTC+8)
+    const baseNow = new Date(nowUtcMs + 8 * 3600000);
 
     let soonest = null;
 
     schedule.forEach(item => {
+        const d = new Date(baseNow);
+        const today = baseNow.getDay();
         const targetDay = weekdayToIndex(item.weekday);
-        const date = new Date(now);
 
         let diff = targetDay - today;
         if (diff < 0) diff += 7;
 
-        date.setDate(now.getDate() + diff);
-        date.setHours(item.hour, item.minute, 0, 0);
+        d.setDate(baseNow.getDate() + diff);
+        d.setHours(item.hour, item.minute, 0, 0);
 
-        if (date.getTime() <= nowMs) {
-            date.setDate(date.getDate() + 7);
+        if (d <= baseNow) {
+            d.setDate(d.getDate() + 7);
         }
 
-        if (!soonest || date < soonest) soonest = date;
+        if (!soonest || d < soonest) soonest = d;
     });
 
-    return soonest;
+    // Convert BASE (UTC+8) → selected timezone
+    return soonest.getTime() + (currentTzOffset - 8) * 3600000;
 }
+
 
 /* -----------------------------
    MAIN RENDER (PATCHED LOGIC)
@@ -662,4 +674,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+document.addEventListener("DOMContentLoaded", () => {
+    const tzSelect = document.getElementById("tz-select");
+    if (tzSelect) {
+        tzSelect.value = String(currentTzOffset);
+    }
+});
+
+
     
