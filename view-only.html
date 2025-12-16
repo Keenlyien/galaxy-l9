@@ -9,9 +9,26 @@
 
 <div class="header">
     <h1 class="header-title">L9 Galaxy Field Boss Schedule</h1>
+
+    <!-- Language selector -->
     <select id="lang-select" onchange="setLanguage(this.value)">
         <option value="en">English</option>
         <option value="th">ไทย</option>
+    </select>
+
+    <!-- Timezone selector -->
+    <select id="tz-select" onchange="setTimezone(this.value)">
+        <option value="8">UTC +8</option>
+        <option value="7">UTC +7</option>
+    </select>
+</div>
+
+<!-- Sorting dropdown -->
+<div class="sort-container">
+    <select id="sortSelect">
+        <option value="default">Sort: Default</option>
+        <option value="level">Sort: Level</option>
+        <option value="respawn">Sort: Respawn Time</option>
     </select>
 </div>
 
@@ -20,68 +37,26 @@
 <!-- Scripts -->
 <script src="lang.js"></script>
 <script>
-    // Global config storage
     let currentLang = 'en';
+    let currentSort = 'default';
     let bosses = [];
 
-    // Optional: real-time updates via SSE
-    const evtSource = new EventSource("/api/stream");
-    evtSource.onmessage = async (event) => {
-        const dbBosses = JSON.parse(event.data);
-        dbBosses.forEach(d => {
-            const serverVal = d.last_killed ?? null;
-            if (serverVal) localStorage.setItem("boss_kill_" + d.name, String(serverVal));
-            else localStorage.removeItem("boss_kill_" + d.name);
-        });
+    // Timezone support
+    const BASE_TZ_OFFSET = 8; // schedules are written in UTC+8
+    let currentTzOffset = Number(localStorage.getItem("tz_offset")) || 8;
+
+    function setTimezone(offset) {
+        currentTzOffset = Number(offset);
+        localStorage.setItem("tz_offset", currentTzOffset);
         renderBosses();
-    };
-
-    // Load from server (force no-cache) and sync localStorage
-    async function loadBossStatusFromDB() {
-        try {
-            const res = await fetch("/api/getBosses", { cache: "no-store" });
-            if (!res.ok) {
-                console.error("getBosses failed:", res.status, await res.text());
-                return;
-            }
-            const dbBosses = await res.json();
-
-            dbBosses.forEach(d => {
-                const serverVal = d.last_killed ?? d.status ?? null;
-
-                if (serverVal) {
-                    const ts = typeof serverVal === "string" ? Date.parse(serverVal) : Number(serverVal);
-                    if (!isNaN(ts)) {
-                        localStorage.setItem("boss_kill_" + d.name, String(ts));
-                    } else {
-                        localStorage.removeItem("boss_kill_" + d.name);
-                    }
-                } else {
-                    localStorage.removeItem("boss_kill_" + d.name);
-                }
-            });
-
-            renderBosses();
-        } catch (err) {
-            console.error("Failed loading from DB:", err);
-        }
     }
-
-    // Poll server every 5 seconds
-    const POLL_INTERVAL_MS = 5000;
-    setInterval(loadBossStatusFromDB, POLL_INTERVAL_MS);
-
-    // Run once at page load
-    loadBossStatusFromDB();
 
     function setLanguage(lang) {
         currentLang = lang;
-
         if (document.querySelector(".header-title")) {
             document.querySelector(".header-title").textContent = LANG[lang].boss_schedule_title;
         }
-
-        if (typeof renderBosses === "function") renderBosses();
+        renderBosses();
     }
 
     // Load bosses.json
@@ -92,7 +67,7 @@
             renderBosses();
         });
 
-    /* Parsing Helpers */
+    // Parsing helpers
     function parseRespawnHours(text) {
         const match = text.match(/(\d+)\s*Hour/);
         return match ? parseInt(match[1], 10) : null;
@@ -101,11 +76,8 @@
     function parseWeeklyRespawns(text) {
         const entries = text.split(",").map(t => t.trim());
         const times = [];
-
         entries.forEach(entry => {
-            const match =
-                entry.match(/(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\d{1,2}):(\d{2})/i);
-
+            const match = entry.match(/(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\d{1,2}):(\d{2})/i);
             if (match) {
                 times.push({
                     weekday: match[1],
@@ -114,7 +86,6 @@
                 });
             }
         });
-
         return times.length > 0 ? times : null;
     }
 
@@ -124,29 +95,24 @@
 
     function getNextWeeklySpawn(schedule) {
         const now = new Date();
-        const today = now.getDay();
-        const nowMs = now.getTime();
-
+        const nowUtcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+        const baseNow = new Date(nowUtcMs + BASE_TZ_OFFSET * 3600000);
         let soonest = null;
 
         schedule.forEach(item => {
+            const d = new Date(baseNow);
+            const today = baseNow.getDay();
             const targetDay = weekdayToIndex(item.weekday);
-            const date = new Date(now);
-
             let diff = targetDay - today;
             if (diff < 0) diff += 7;
-
-            date.setDate(now.getDate() + diff);
-            date.setHours(item.hour, item.minute, 0, 0);
-
-            if (date.getTime() <= nowMs) {
-                date.setDate(date.getDate() + 7);
-            }
-
-            if (!soonest || date < soonest) soonest = date;
+            d.setDate(baseNow.getDate() + diff);
+            d.setHours(item.hour, item.minute, 0, 0);
+            if (d <= baseNow) d.setDate(d.getDate() + 7);
+            if (!soonest || d < soonest) soonest = d;
         });
 
-        return soonest;
+        // Adjust for selected timezone
+        return soonest.getTime() + (currentTzOffset - BASE_TZ_OFFSET) * 3600000;
     }
 
     function formatTime(ms) {
@@ -155,33 +121,18 @@
         const hours = Math.floor((totalSeconds % 86400) / 3600);
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
-
-        if (days > 0) {
-            return `${days}d ${hours}h ${minutes}m ${seconds}s`;
-        } else if (hours > 0) {
-            return `${hours}h ${minutes}m ${seconds}s`;
-        } else if (minutes > 0) {
-            return `${minutes}m ${seconds}s`;
-        } else {
-            return `${seconds}s`;
-        }
+        if (days > 0) return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+        if (minutes > 0) return `${minutes}m ${seconds}s`;
+        return `${seconds}s`;
     }
 
     function startTimer(i, initialTimeLeft) {
-        const timerId = setInterval(() => {
-            const timerEl = document.getElementById(`timer_${i}`);
-            if (!timerEl) {
-                clearInterval(timerId);
-                return;
-            }
-
+        const timerEl = document.getElementById(`timer_${i}`);
+        const interval = setInterval(() => {
+            if (!timerEl) return clearInterval(interval);
             initialTimeLeft -= 1000;
-            if (initialTimeLeft <= 0) {
-                timerEl.innerHTML = LANG[currentLang].alive;
-                clearInterval(timerId);
-            } else {
-                timerEl.innerHTML = formatTime(initialTimeLeft);
-            }
+            timerEl.textContent = initialTimeLeft > 0 ? formatTime(initialTimeLeft) : LANG[currentLang].alive;
         }, 1000);
     }
 
@@ -207,52 +158,62 @@
             "Chaiflock": "images/Chaiflock.png",
             "Benji": "images/Benji.png",
         };
-
         return images[name] || "images/default.png";
     }
 
-    /* Main Render - READ ONLY VERSION */
+    // -----------------------------
+    // Main Render
+    // -----------------------------
     function renderBosses() {
         const container = document.getElementById("boss-container");
         container.innerHTML = "";
 
         const now = Date.now();
 
-        bosses.forEach((boss, i) => {
+        // Apply sorting
+        let sortedBosses = [...bosses];
+        function getTimeLeft(boss) {
+            const hours = parseRespawnHours(boss.respawn);
+            const weekly = parseWeeklyRespawns(boss.respawn);
+            const lastKill = parseInt(localStorage.getItem("boss_kill_" + boss.name), 10);
+            if (hours !== null && lastKill) {
+                const respawnMs = hours * 3600 * 1000;
+                let timeLeft = respawnMs - (now - lastKill);
+                return Math.max(timeLeft, 0);
+            }
+            if (weekly) {
+                const next = getNextWeeklySpawn(weekly);
+                return Math.max(next - now, 0);
+            }
+            return 0;
+        }
+
+        if (currentSort === "level") {
+            sortedBosses.sort((a, b) => b.level - a.level);
+        } else if (currentSort === "respawn") {
+            sortedBosses.sort((a, b) => getTimeLeft(a) - getTimeLeft(b));
+        }
+
+        sortedBosses.forEach((boss, i) => {
             const hours = parseRespawnHours(boss.respawn);
             const weekly = parseWeeklyRespawns(boss.respawn);
 
             let timeLeft = 0;
-            let status = "Alive";
-
             const lastKill = parseInt(localStorage.getItem("boss_kill_" + boss.name), 10);
 
             if (hours !== null) {
                 if (lastKill) {
                     const respawnMs = hours * 3600 * 1000;
-                    let elapsed = now - lastKill;
-                    if (elapsed < 0) elapsed = 0;
-                    timeLeft = respawnMs - elapsed;
-                    if (timeLeft < 0) timeLeft = 0;
-
-                    status = timeLeft > 0 ? LANG[currentLang].dead : LANG[currentLang].alive;
-                } else {
-                    timeLeft = 0;
-                    status = LANG[currentLang].alive;
+                    timeLeft = Math.max(respawnMs - (now - lastKill), 0);
                 }
             } else if (weekly) {
-                const nextSpawn = getNextWeeklySpawn(weekly);
-                timeLeft = nextSpawn - now;
-                if (timeLeft < 0) timeLeft = 0;
-
-                status = timeLeft > 0 ? LANG[currentLang].dead : LANG[currentLang].alive;
+                timeLeft = Math.max(getNextWeeklySpawn(weekly) - now, 0);
             }
 
             const card = document.createElement("div");
             card.className = `boss-card ${hours !== null ? (timeLeft > 0 ? "dead" : "alive") : "scheduled"}`;
             card.setAttribute("data-boss", boss.name);
 
-            // READ-ONLY: No buttons, just display information
             card.innerHTML = `
                 <div class="boss-content">
                     <div class="boss-left">
@@ -263,7 +224,6 @@
                             ${timeLeft > 0 ? formatTime(timeLeft) : LANG[currentLang].alive}
                         </div>
                     </div>
-
                     <div class="boss-right">
                         <img src="${getBossImage(boss.name)}" class="boss-image">
                     </div>
@@ -275,8 +235,25 @@
             if (timeLeft > 0) startTimer(i, timeLeft);
         });
     }
+
+    // -----------------------------
+    // Sorting & timezone event listeners
+    // -----------------------------
+    document.addEventListener("DOMContentLoaded", () => {
+        const sortSelect = document.getElementById("sortSelect");
+        if (sortSelect) {
+            sortSelect.addEventListener("change", e => {
+                currentSort = e.target.value;
+                renderBosses();
+            });
+        }
+
+        const tzSelect = document.getElementById("tz-select");
+        if (tzSelect) {
+            tzSelect.value = String(currentTzOffset);
+        }
+    });
 </script>
 
 </body>
-
 </html>
