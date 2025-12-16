@@ -207,6 +207,16 @@ function getNextWeeklySpawn(schedule) {
    MAIN RENDER (PATCHED LOGIC)
 ----------------------------- */
 
+// offset
+function setTimezone(offset) {
+    currentTzOffset = Number(offset);      // update the global variable
+    localStorage.setItem("tz_offset", currentTzOffset); // persist selection
+    renderBosses();                        // re-render immediately
+}
+
+
+/* Render */
+
 function renderBosses() {
     const container = document.getElementById("boss-container");
     container.innerHTML = "";
