@@ -1,4 +1,3 @@
-import './discord.js';
 // Redirect if not logged in
 let currentLang = 'en'; // default language
 
