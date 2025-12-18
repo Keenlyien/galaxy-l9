@@ -28,3 +28,15 @@ export default async function handler(req, res) {
 
     res.status(200).json({ success: true });
 }
+
+// when boss is killed
+await bosses.updateOne(
+    { name: bossName },
+    {
+        $set: {
+            last_killed: killTime,
+            notified_10m: false,
+            notified_spawn: false
+        }
+    }
+);
