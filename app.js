@@ -721,6 +721,13 @@ async function saveBossFromModal() {
     if (!level) return alert("Level is required *");
     if (!scheduleType) return alert("Schedule Type is required *");
 
+    // Check for duplicate boss name (only when creating new boss)
+    if (editingBossIndex === null) {
+        if (bosses.some(b => b.name.toLowerCase() === name.toLowerCase())) {
+            return alert(`Boss "${name}" already exists. Choose a different name.`);
+        }
+    }
+
     // Build respawn string based on schedule type
     let respawn = "";
     if (scheduleType === "scheduled") {
@@ -810,6 +817,7 @@ function toggleRespawnUI() {
     if (scheduleType === "scheduled") {
         scheduledDiv?.classList.remove("hidden");
         unscheduledDiv?.classList.add("hidden");
+        updateScheduledSummary();
     } else if (scheduleType === "unscheduled") {
         scheduledDiv?.classList.add("hidden");
         unscheduledDiv?.classList.remove("hidden");
@@ -936,6 +944,86 @@ async function readImageFileAsDataURL(file) {
 }
 
 
+// === WEEKLY RESPAWN EDITOR MODAL ===
+function showRespawnEditorModal(show) {
+    const modal = document.getElementById("respawn-editor-modal");
+    if (!modal) return;
+    modal.classList.toggle("hidden", !show);
+}
+
+function renderRespawnEditorModal() {
+    const list = document.getElementById("respawn-times-list");
+    if (!list) return;
+    
+    list.innerHTML = "";
+    scheduledTimes.forEach((time, idx) => {
+        const item = document.createElement("div");
+        item.className = "respawn-time-item";
+        
+        const daySelect = document.createElement("select");
+        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach(day => {
+            const opt = document.createElement("option");
+            opt.value = day;
+            opt.textContent = day;
+            if (time.day === day) opt.selected = true;
+            daySelect.appendChild(opt);
+        });
+        daySelect.addEventListener("change", (e) => {
+            scheduledTimes[idx].day = e.target.value;
+        });
+        
+        const hourInput = document.createElement("input");
+        hourInput.type = "number";
+        hourInput.min = "0";
+        hourInput.max = "23";
+        hourInput.value = time.hour;
+        hourInput.placeholder = "HH";
+        hourInput.addEventListener("change", (e) => {
+            scheduledTimes[idx].hour = Math.max(0, Math.min(23, parseInt(e.target.value, 10) || 0));
+            hourInput.value = scheduledTimes[idx].hour;
+        });
+        
+        const minuteInput = document.createElement("input");
+        minuteInput.type = "number";
+        minuteInput.min = "0";
+        minuteInput.max = "59";
+        minuteInput.value = time.minute;
+        minuteInput.placeholder = "MM";
+        minuteInput.addEventListener("change", (e) => {
+            scheduledTimes[idx].minute = Math.max(0, Math.min(59, parseInt(e.target.value, 10) || 0));
+            minuteInput.value = scheduledTimes[idx].minute;
+        });
+        
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "btn-danger";
+        removeBtn.textContent = "Remove";
+        removeBtn.addEventListener("click", () => {
+            scheduledTimes.splice(idx, 1);
+            renderRespawnEditorModal();
+        });
+        
+        item.appendChild(daySelect);
+        item.appendChild(hourInput);
+        item.appendChild(minuteInput);
+        item.appendChild(removeBtn);
+        list.appendChild(item);
+    });
+}
+
+function updateScheduledSummary() {
+    const summary = document.getElementById("scheduled-summary");
+    if (!summary) return;
+    
+    if (scheduledTimes.length === 0) {
+        summary.textContent = "No times set";
+    } else {
+        summary.textContent = scheduledTimes
+            .map(t => `${t.day} ${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`)
+            .join(", ");
+    }
+}
+
 // Wire modal buttons
 document.addEventListener("DOMContentLoaded", () => {
     const addBtn = document.getElementById("addBossBtn");
@@ -955,5 +1043,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const addTimeBtn = document.getElementById("add-scheduled-time");
     if (addTimeBtn) addTimeBtn.addEventListener("click", addScheduledTime);
+
+    // Weekly respawn editor modal events
+    const editScheduledBtn = document.getElementById("edit-scheduled-times");
+    if (editScheduledBtn) {
+        editScheduledBtn.addEventListener("click", () => {
+            renderRespawnEditorModal();
+            showRespawnEditorModal(true);
+        });
+    }
+
+    const addRespawnTimeBtn = document.getElementById("add-respawn-time");
+    if (addRespawnTimeBtn) {
+        addRespawnTimeBtn.addEventListener("click", () => {
+            scheduledTimes.push({ day: "Monday", hour: 12, minute: 0 });
+            renderRespawnEditorModal();
+        });
+    }
+
+    const respawnSaveBtn = document.getElementById("respawn-save");
+    if (respawnSaveBtn) {
+        respawnSaveBtn.addEventListener("click", () => {
+            updateScheduledSummary();
+            showRespawnEditorModal(false);
+        });
+    }
+
+    const respawnCancelBtn = document.getElementById("respawn-cancel");
+    if (respawnCancelBtn) {
+        respawnCancelBtn.addEventListener("click", () => {
+            showRespawnEditorModal(false);
+        });
+    }
 });
 
