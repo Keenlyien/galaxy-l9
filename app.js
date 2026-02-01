@@ -667,10 +667,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // -----------------------------
-// ADD / EDIT / DELETE BOSSES (CLIENT)
-// -----------------------------
-let editingBossIndex = null;
-
 function showBossModal(show) {
     const modal = document.getElementById("boss-modal");
     if (!modal) return;
@@ -960,3 +956,4 @@ document.addEventListener("DOMContentLoaded", () => {
     const addTimeBtn = document.getElementById("add-scheduled-time");
     if (addTimeBtn) addTimeBtn.addEventListener("click", addScheduledTime);
 });
+
