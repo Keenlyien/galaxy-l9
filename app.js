@@ -1046,13 +1046,46 @@ function updateScheduledSummary() {
     
     if (scheduledTimes.length === 0) {
         summary.innerHTML = `
-            <div class="respawn-placeholder">
-                <div class="rp-box">Placeholder for Day<br><small>(example: sunday)</small></div>
-                <div class="rp-box">placeholder for<br>hour</div>
-                <div class="rp-box">placeholder for<br>minute</div>
+            <div class="scheduled-inline">
+                <div class="duration-input">
+                    <label style="font-size:12px;color:#bbb;margin-bottom:6px;display:block">Day</label>
+                    <select id="scheduled-day-input">
+                        <option>Monday</option>
+                        <option>Tuesday</option>
+                        <option>Wednesday</option>
+                        <option>Thursday</option>
+                        <option>Friday</option>
+                        <option>Saturday</option>
+                        <option>Sunday</option>
+                    </select>
+                </div>
+                <div class="duration-input">
+                    <label style="font-size:12px;color:#bbb;margin-bottom:6px;display:block">Hour</label>
+                    <input id="scheduled-hour-input" type="number" min="0" max="23" value="12">
+                </div>
+                <div class="duration-input">
+                    <label style="font-size:12px;color:#bbb;margin-bottom:6px;display:block">Minute</label>
+                    <input id="scheduled-minute-input" type="number" min="0" max="59" value="0">
+                </div>
+                <div style="display:flex;align-items:flex-end;">
+                    <button type="button" id="scheduled-add-btn" class="btn">Add</button>
+                </div>
+                <div style="display:flex;align-items:flex-end;">
+                    <div class="rp-pill">No times set</div>
+                </div>
             </div>
-            <div class="rp-pill">No times set</div>
         `;
+        // wire add button
+        const addBtn = document.getElementById('scheduled-add-btn');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                const day = document.getElementById('scheduled-day-input').value;
+                const hour = parseInt(document.getElementById('scheduled-hour-input').value, 10) || 0;
+                const minute = parseInt(document.getElementById('scheduled-minute-input').value, 10) || 0;
+                scheduledTimes.push({ day, hour, minute });
+                updateScheduledSummary();
+            });
+        }
     } else {
         summary.innerHTML = `<div class="rp-pill">` + scheduledTimes
             .map(t => `${t.day} ${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`)

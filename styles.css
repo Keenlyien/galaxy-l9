@@ -340,7 +340,8 @@ body {
 }
 
 .dt-modal-content {
-    background: #1b1b1f;
+    padding: 30px;
+    font-size: 14px; /* slightly smaller modal font */
     width: 360px;
     padding: 20px;
     border-radius: 14px;
@@ -783,7 +784,12 @@ select option {
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-}
+.respawn-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
 
 .respawn-summary.pill {
     display: inline-block;
@@ -823,6 +829,38 @@ select option {
     text-align: center;
     font-size: 12px;
     padding: 6px;
+}
+
+/* Inline scheduled inputs (match Respawn Duration style) */
+.scheduled-inline {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+.scheduled-inline .duration-input {
+    flex: 0 0 auto;
+    width: 140px;
+}
+.scheduled-inline select,
+.scheduled-inline input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    background: #2b2b31;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #fff;
+}
+
+/* ensure Edit button is clickable and inside modal */
+#edit-scheduled-times {
+    z-index: 5;
+}
+
+/* make sure scheduled summary doesn't overflow modal */
+.respawn-summary {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .rp-pill {
