@@ -1,0 +1,9 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/participation", "destination": "/participation.html" },
+    { "source": "/view-only", "destination": "/view-only.html" }
+  ]
+}
