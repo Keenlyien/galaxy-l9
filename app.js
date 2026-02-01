@@ -52,32 +52,27 @@ async function updateBoss(name, killedAt) {
 async function loadBossStatusFromDB() {
     try {
         const res = await fetch("/api/getBosses", { cache: "no-store" });
+        let dbBosses = [];
+        
         if (!res.ok) {
             console.error("getBosses failed:", res.status);
-            bosses = FALLBACK_BOSSES;
-            renderBosses();
-            return;
-        }
-        const dbBosses = await res.json();
-
-        if (!dbBosses || dbBosses.length === 0) {
-            bosses = FALLBACK_BOSSES;
+            dbBosses = FALLBACK_BOSSES;
         } else {
-            // Update the bosses array
-            bosses = dbBosses;
+            const data = await res.json();
+            dbBosses = (data && data.length > 0) ? data : FALLBACK_BOSSES;
         }
 
-        dbBosses.forEach(d => {
-            // Use last_killed (DB field). Accept either `last_killed` or `status` for compatibility.
-            const serverVal = d.last_killed ?? d.status ?? null;
+        // Update the bosses array
+        bosses = dbBosses;
 
+        // Sync with localStorage
+        dbBosses.forEach(d => {
+            const serverVal = d.last_killed ?? d.status ?? null;
             if (serverVal) {
-                // If serverVal is a Date string, convert to number; if it's number already, keep it.
                 const ts = typeof serverVal === "string" ? Date.parse(serverVal) : Number(serverVal);
                 if (!isNaN(ts)) {
                     localStorage.setItem("boss_kill_" + d.name, String(ts));
                 } else {
-                    // If parsing failed, remove key to treat as alive
                     localStorage.removeItem("boss_kill_" + d.name);
                 }
             } else {
@@ -85,7 +80,7 @@ async function loadBossStatusFromDB() {
             }
         });
 
-        // Re-render using updated localStorage values
+        // Re-render
         renderBosses();
     } catch (err) {
         console.error("Failed loading from DB:", err);
