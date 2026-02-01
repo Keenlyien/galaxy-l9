@@ -35,7 +35,7 @@ async function updateBoss(name, killedAt) {
     }
 }
 
-// Load from server (force no-cache) and sync localStorage
+// Load bosses list and status from server (single function)
 async function loadBossStatusFromDB() {
     try {
         const res = await fetch("/api/getBosses", { cache: "no-store" });
@@ -45,17 +45,17 @@ async function loadBossStatusFromDB() {
         }
         const dbBosses = await res.json();
 
-        dbBosses.forEach(d => {
-            // Use last_killed (DB field). Accept either `last_killed` or `status` for compatibility.
-            const serverVal = d.last_killed ?? d.status ?? null;
+        // Update bosses list
+        bosses = dbBosses;
 
+        // Sync localStorage with kill times for timer calculations
+        dbBosses.forEach(d => {
+            const serverVal = d.last_killed ?? null;
             if (serverVal) {
-                // If serverVal is a Date string, convert to number; if it's number already, keep it.
                 const ts = typeof serverVal === "string" ? Date.parse(serverVal) : Number(serverVal);
                 if (!isNaN(ts)) {
                     localStorage.setItem("boss_kill_" + d.name, String(ts));
                 } else {
-                    // If parsing failed, remove key to treat as alive
                     localStorage.removeItem("boss_kill_" + d.name);
                 }
             } else {
@@ -63,14 +63,14 @@ async function loadBossStatusFromDB() {
             }
         });
 
-        // Re-render using updated localStorage values
+        // Re-render using updated bosses and localStorage values
         renderBosses();
     } catch (err) {
         console.error("Failed loading from DB:", err);
     }
 }
 
-// Poll server every 5 seconds (keep this)
+// Poll server every 5 seconds for status + boss list changes
 const POLL_INTERVAL_MS = 5000;
 setInterval(loadBossStatusFromDB, POLL_INTERVAL_MS);
 
@@ -126,25 +126,6 @@ function logout() {
 
 let bosses = [];
 let currentSort = "default";
-
-
-// Load bosses.json
-// Load bosses from server (replace static `bosses.json` use)
-async function loadBossesList() {
-    try {
-        const res = await fetch("/api/getBosses", { cache: "no-store" });
-        if (!res.ok) return console.error("getBosses failed:", res.status, await res.text());
-        const data = await res.json();
-        bosses = data;
-        renderBosses();
-    } catch (err) {
-        console.error("Failed to load bosses list:", err);
-    }
-}
-
-// Replace earlier single call - we still poll for status, so periodically refresh boss list too
-setInterval(loadBossesList, POLL_INTERVAL_MS);
-loadBossesList();
 
 /* -----------------------------
    PARSING HELPERS
@@ -758,11 +739,12 @@ async function saveBossFromModal() {
             body: JSON.stringify({ action, boss: payload })
         });
         if (!res.ok) throw new Error(await res.text());
-        await loadBossesList();
+        // Reload bosses after successful save
+        await loadBossStatusFromDB();
         showBossModal(false);
     } catch (err) {
         console.error("Failed to save boss:", err);
-        alert("Failed to save boss");
+        alert("Failed to save boss: " + err.message);
     }
 }
 
@@ -777,11 +759,12 @@ async function deleteBossFromModal() {
             body: JSON.stringify({ name: boss.name })
         });
         if (!res.ok) throw new Error(await res.text());
-        await loadBossesList();
+        // Reload bosses after successful delete
+        await loadBossStatusFromDB();
         showBossModal(false);
     } catch (err) {
         console.error("Failed to delete boss:", err);
-        alert("Failed to delete boss");
+        alert("Failed to delete boss: " + err.message);
     }
 }
 
