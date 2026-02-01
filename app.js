@@ -1045,11 +1045,18 @@ function updateScheduledSummary() {
     if (!summary) return;
     
     if (scheduledTimes.length === 0) {
-        summary.textContent = "No times set";
+        summary.innerHTML = `
+            <div class="respawn-placeholder">
+                <div class="rp-box">Placeholder for Day<br><small>(example: sunday)</small></div>
+                <div class="rp-box">placeholder for<br>hour</div>
+                <div class="rp-box">placeholder for<br>minute</div>
+            </div>
+            <div class="rp-pill">No times set</div>
+        `;
     } else {
-        summary.textContent = scheduledTimes
+        summary.innerHTML = `<div class="rp-pill">` + scheduledTimes
             .map(t => `${t.day} ${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`)
-            .join(", ");
+            .join(", ") + `</div>`;
     }
 }
 

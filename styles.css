@@ -608,14 +608,31 @@ body {
 .modal-content h2 {
     margin-top: 0;
     margin-bottom: 20px;
-    color: #fff;
-    font-size: 24px;
-}
+    #sortSelect {
+        padding: 6px 10px;
+        border-radius: 8px;
+        border: 1px solid #444;
+        background: #111;
+        color: #fff;
+        font-size: 14px;
+    }
+    #sortSelect:hover {
+        background: #222;
+        border-color: #666;
+    }
+    .sort-container {
+        padding: 10px 40px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
 
-.modal-content label {
-    display: block;
-    margin-top: 12px;
-    margin-bottom: 6px;
+    /* Add Boss button style inside sort container */
+    #addBossBtn {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+    }
     color: #aaa;
     font-size: 14px;
     font-weight: bold;
@@ -784,6 +801,38 @@ select option {
     padding: 8px 10px;
     border-radius: 6px;
     font-size: 13px;
+}
+
+/* Placeholder boxes inside scheduled summary */
+.respawn-placeholder {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.rp-box {
+    min-width: 140px;
+    height: 50px;
+    background: #111316;
+    border: 2px solid #252427;
+    border-radius: 6px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 12px;
+    padding: 6px;
+}
+
+.rp-pill {
+    display: inline-block;
+    margin-left: 12px;
+    padding: 8px 12px;
+    background: #1b1b1d;
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: #ddd;
 }
 
 .duration-picker {
