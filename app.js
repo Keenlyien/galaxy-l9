@@ -133,11 +133,13 @@ let currentSort = "default";
 ----------------------------- */
 
 function parseRespawnHours(text) {
+    if (!text) return null;
     const match = text.match(/(\d+)\s*Hour/);
     return match ? parseInt(match[1], 10) : null;
 }
 
 function parseWeeklyRespawns(text) {
+    if (!text) return null;
     const entries = text.split(",").map(t => t.trim());
     const times = [];
 
