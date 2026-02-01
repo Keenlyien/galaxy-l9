@@ -2,17 +2,30 @@
 let currentLang = 'en'; // default language
 
 
-// Optional: real-time updates via SSE
-const evtSource = new EventSource("/api/stream");
-evtSource.onmessage = async (event) => {
-    const dbBosses = JSON.parse(event.data);
-    dbBosses.forEach(d => {
-        const serverVal = d.last_killed ?? null;
-        if (serverVal) localStorage.setItem("boss_kill_" + d.name, String(serverVal));
-        else localStorage.removeItem("boss_kill_" + d.name);
-    });
-    renderBosses();
-};
+// Optional: real-time updates via SSE (polling fallback for Vercel)
+let sseConnected = false;
+try {
+    const evtSource = new EventSource("/api/stream");
+    evtSource.onmessage = async (event) => {
+        sseConnected = true;
+        try {
+            const dbBosses = JSON.parse(event.data);
+            dbBosses.forEach(d => {
+                const serverVal = d.last_killed ?? null;
+                if (serverVal) localStorage.setItem("boss_kill_" + d.name, String(serverVal));
+                else localStorage.removeItem("boss_kill_" + d.name);
+            });
+            renderBosses();
+        } catch (e) {
+            console.error("Failed to parse SSE data:", e);
+        }
+    };
+    evtSource.onerror = () => {
+        evtSource.close();
+    };
+} catch (e) {
+    console.warn("SSE not available, using polling");
+}
 
 //TIMEZONE SUPPORT
 // === TIMEZONE (SCHEDULED BOSSES ONLY) ===

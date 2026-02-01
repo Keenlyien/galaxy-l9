@@ -1,6 +1,4 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "public",
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -15,7 +13,11 @@
       "destination": "/participation.html"
     },
     {
-      "source": "/",
+      "source": "/view-only",
+      "destination": "/view-only.html"
+    },
+    {
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
