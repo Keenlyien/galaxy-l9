@@ -21,14 +21,30 @@ export default async function handler(req, res) {
         Connection: "keep-alive",
     });
 
-    // Send initial data
-    const bosses = await collection.find({}).toArray();
+    // Send initial data (only necessary fields)
+    const raw = await collection.find({}).toArray();
+    const bosses = raw.map(b => ({
+        name: b.name,
+        level: b.level,
+        location: b.location,
+        respawn: b.respawn,
+        last_killed: b.last_killed ?? null,
+        imageData: b.imageData ?? null
+    }));
     res.write(`data: ${JSON.stringify(bosses)}\n\n`);
 
     // Watch for DB changes
     const changeStream = collection.watch();
     changeStream.on("change", async () => {
-        const updated = await collection.find({}).toArray();
+        const raw2 = await collection.find({}).toArray();
+        const updated = raw2.map(b => ({
+            name: b.name,
+            level: b.level,
+            location: b.location,
+            respawn: b.respawn,
+            last_killed: b.last_killed ?? null,
+            imageData: b.imageData ?? null
+        }));
         res.write(`data: ${JSON.stringify(updated)}\n\n`);
     });
 
