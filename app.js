@@ -709,37 +709,44 @@ async function readImageFileAsDataURL(file) {
 }
 
 async function saveBossFromModal() {
-    // Validation
+    // Validation (collect errors and show inline)
+    clearFormErrors();
+    const errors = [];
     const name = document.getElementById("boss-name").value.trim();
     const location = document.getElementById("boss-location").value.trim();
     const level = document.getElementById("boss-level").value.trim();
     const scheduleType = document.getElementById("boss-schedule-type").value;
     const imgEl = document.getElementById("boss-image");
 
-    if (!name) return alert("Name is required *");
-    if (!location) return alert("Location is required *");
-    if (!level) return alert("Level is required *");
-    if (!scheduleType) return alert("Schedule Type is required *");
+    if (!name) errors.push("Name is required");
+    if (!location) errors.push("Location is required");
+    if (!level) errors.push("Level is required");
+    if (!scheduleType) errors.push("Schedule Type is required");
 
     // Check for duplicate boss name (only when creating new boss)
-    if (editingBossIndex === null) {
+    if (editingBossIndex === null && name) {
         if (bosses.some(b => b.name.toLowerCase() === name.toLowerCase())) {
-            return alert(`Boss "${name}" already exists. Choose a different name.`);
+            errors.push(`Boss \"${name}\" already exists. Choose a different name.`);
         }
     }
 
     // Build respawn string based on schedule type
     let respawn = "";
     if (scheduleType === "scheduled") {
-        if (scheduledTimes.length === 0) return alert("Please add at least one scheduled time *");
+        if (scheduledTimes.length === 0) errors.push("Please add at least one scheduled time");
         respawn = scheduledTimes.map(t => `${t.day} ${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`).join(", ");
     } else if (scheduleType === "unscheduled") {
         const days = parseInt(document.getElementById("boss-respawn-days").value, 10) || 0;
         const hours = parseInt(document.getElementById("boss-respawn-hours").value, 10) || 0;
         const minutes = parseInt(document.getElementById("boss-respawn-minutes").value, 10) || 0;
         const totalHours = days * 24 + hours;
-        if (totalHours === 0 && minutes === 0) return alert("Respawn duration must be greater than 0 *");
+        if (totalHours === 0 && minutes === 0) errors.push("Respawn duration must be greater than 0");
         respawn = `${totalHours} Hour${minutes > 0 ? ` ${minutes} Minute` : ""}`;
+    }
+
+    if (errors.length > 0) {
+        showFormErrors(errors);
+        return;
     }
 
     const payload = {
@@ -752,12 +759,16 @@ async function saveBossFromModal() {
 
     if (imgEl && imgEl.files && imgEl.files[0]) {
         const file = imgEl.files[0];
-        if (file.size > 4 * 1024 * 1024) return alert("Image must be 4MB or smaller");
+        if (file.size > 4 * 1024 * 1024) {
+            showFormErrors(["Image must be 4MB or smaller"]);
+            return;
+        }
         try {
             payload.imageData = await readImageFileAsDataURL(file);
         } catch (err) {
             console.error("Failed reading image:", err);
-            return alert("Failed to read image file");
+            showFormErrors(["Failed to read image file"]);
+            return;
         }
     }
 
@@ -773,8 +784,28 @@ async function saveBossFromModal() {
         showBossModal(false);
     } catch (err) {
         console.error("Failed to save boss:", err);
-        alert("Failed to save boss: " + err.message);
+        showFormErrors(["Failed to save boss: " + err.message]);
     }
+}
+
+function showFormErrors(errors) {
+    const el = document.getElementById("boss-form-errors");
+    if (!el) return;
+    if (!errors) {
+        el.style.display = "none";
+        el.innerHTML = "";
+        return;
+    }
+    if (!Array.isArray(errors)) errors = [String(errors)];
+    el.innerHTML = errors.map(e => `<div>${e}</div>`).join("");
+    el.style.display = "block";
+}
+
+function clearFormErrors() {
+    const el = document.getElementById("boss-form-errors");
+    if (!el) return;
+    el.style.display = "none";
+    el.innerHTML = "";
 }
 
 async function deleteBossFromModal() {

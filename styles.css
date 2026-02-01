@@ -761,6 +761,31 @@ select option {
     align-items: center;
 }
 
+.respawn-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.respawn-summary.pill {
+    display: inline-block;
+    padding: 8px 12px;
+    background: #1b1b1d;
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: #ddd;
+}
+
+.form-errors {
+    background: #2b1618;
+    color: #ff8b8b;
+    border: 1px solid #6e2b2b;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
 .duration-picker {
     display: flex;
     gap: 12px;

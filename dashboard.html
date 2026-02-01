@@ -97,11 +97,11 @@
 
       <!-- Scheduled respawn UI (weekly) -->
       <div id="scheduled-respawn" class="respawn-section hidden">
-        <div class="respawn-header">
-          <label>Weekly Respawn Times</label>
+        <label>Weekly Respawn Times *</label>
+        <div class="respawn-header-top">
+          <div class="respawn-summary" id="scheduled-summary">No times set</div>
           <button type="button" class="btn-small" id="edit-scheduled-times">Edit</button>
         </div>
-        <div class="respawn-summary" id="scheduled-summary">No times set</div>
       </div>
 
       <!-- Unscheduled respawn UI (hourly) -->
@@ -126,6 +126,8 @@
       <label>Image (optional, max 4MB)</label>
       <input type="file" id="boss-image" accept="image/*">
       
+      <div id="boss-form-errors" class="form-errors" style="display:none; margin-top:8px;"></div>
+
       <div class="modal-buttons">
         <button type="button" id="boss-save" class="btn">Save</button>
         <button type="button" id="boss-cancel" class="btn">Cancel</button>
@@ -133,19 +135,6 @@
       </div>
         </form>
     </div>
-</div>
-
-<!-- Weekly Respawn Editor Modal -->
-<div id="respawn-editor-modal" class="modal hidden">
-  <div class="modal-content" style="max-width: 600px;">
-    <h2>Edit Weekly Respawn Times</h2>
-    <div id="respawn-times-list" class="respawn-times-list"></div>
-    <button type="button" class="btn" id="add-respawn-time">+ Add Time</button>
-    <div class="modal-buttons" style="margin-top: 20px;">
-      <button type="button" id="respawn-save" class="btn">Save</button>
-      <button type="button" id="respawn-cancel" class="btn">Cancel</button>
-    </div>
-  </div>
 </div>
 
 <!-- Scripts -->
