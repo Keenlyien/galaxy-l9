@@ -347,7 +347,7 @@ function renderBosses() {
                 </div>
 
                         <div class="boss-right">
-                            <img src="${boss.imageData ? boss.imageData : getBossImage(boss.name)}" class="boss-image">
+                            ${boss.imageData ? `<img src="${boss.imageData}" class="boss-image">` : `<div class="boss-image-placeholder">No Image</div>`}
                         </div>
             </div>
 
@@ -370,36 +370,7 @@ function renderBosses() {
 
 
 
-/* -----------------------------
-   IMAGE SUPPORT
------------------------------ */
 
-function getBossImage(name) {
-    const images = {
-        "Venatus": "images/Venatus.png",
-        "Livera": "images/Livera.png",
-        "Neutro": "images/Neutro.png",
-        "Lady Dalia": "images/Lady_Dalia.png",
-        "Thymele": "images/Thymele.png",
-        "Baron Braudmore": "images/Baron_Braudmore.png",
-        "Milavy": "images/Milavy.png",
-        "Wannitas": "images/Wannitas.png",
-        "Duplican": "images/Duplican.png",
-        "Shuliar": "images/Shuliar.png",
-        "Roderick": "images/Roderick.png",
-        "Titore": "images/Titore.png",
-        "Larba": "images/Larba.png",
-        "Catena": "images/Catena.png",
-        "Auraq": "images/Auraq.png",
-        "Secreta": "images/Secreta.png",
-        "Ordo": "images/Ordo.png",
-        "Asta": "images/Asta.png",
-        "Chaiflock": "images/Chaiflock.png",
-        "Benji": "images/Benji.png",
-    };
-
-    return images[name] || "images/default.png";
-}
 
 /* -----------------------------
    LOCAL DATE PARSER

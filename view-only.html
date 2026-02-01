@@ -55,14 +55,10 @@ function setTimezone(offset) {
 }
 
 // -----------------------------
-// LOAD BOSSES
+// LOAD BOSSES (from server)
 // -----------------------------
-fetch("bosses.json")
-    .then(res => res.json())
-    .then(data => {
-        bosses = data;
-        renderBosses();
-    });
+// `loadBossStatusFromDB` will populate `bosses` from the server and
+// keep localStorage in sync with `last_killed` values.
 
 // -----------------------------
 // PARSING HELPERS
@@ -126,31 +122,6 @@ function startTimer(i, initialTimeLeft) {
     }, 1000);
 }
 
-function getBossImage(name) {
-    const images = {
-        "Venatus": "images/Venatus.png",
-        "Livera": "images/Livera.png",
-        "Neutro": "images/Neutro.png",
-        "Lady Dalia": "images/Lady_Dalia.png",
-        "Thymele": "images/Thymele.png",
-        "Baron Braudmore": "images/Baron_Braudmore.png",
-        "Milavy": "images/Milavy.png",
-        "Wannitas": "images/Wannitas.png",
-        "Duplican": "images/Duplican.png",
-        "Roderick": "images/Roderick.png",
-        "Shuliar": "images/Shuliar.png",
-        "Titore": "images/Titore.png",
-        "Larba": "images/Larba.png",
-        "Catena": "images/Catena.png",
-        "Auraq": "images/Auraq.png",
-        "Secreta": "images/Secreta.png",
-        "Ordo": "images/Ordo.png",
-        "Asta": "images/Asta.png",
-        "Chaiflock": "images/Chaiflock.png",
-        "Benji": "images/Benji.png",
-    };
-    return images[name] || "images/default.png";
-}
 
 // -----------------------------
 // RENDER BOSSES
@@ -196,7 +167,7 @@ function renderBosses() {
                     </div>
                 </div>
                 <div class="boss-right">
-                    <img src="${getBossImage(boss.name)}" class="boss-image">
+                    ${boss.imageData ? `<img src="${boss.imageData}" class="boss-image">` : `<div class="boss-image-placeholder">No Image</div>`}
                 </div>
             </div>
         `;
@@ -227,6 +198,10 @@ async function loadBossStatusFromDB() {
         const res = await fetch("/api/getBosses",{cache:"no-store"});
         if(!res.ok) return console.error("getBosses failed:",res.status, await res.text());
         const dbBosses = await res.json();
+
+        // Update local bosses list so additions/removals are reflected
+        bosses = dbBosses;
+
         dbBosses.forEach(d=>{
             const lastKill = d.last_killed ?? null;
             if(lastKill) localStorage.setItem("boss_kill_" + d.name, String(lastKill));
