@@ -671,6 +671,39 @@ body {
     background: #c2192b;
 }
 
+/* ==== SELECT STYLING ==== */
+select {
+    width: 100%;
+    padding: 10px;
+    background: #2b2b31;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    padding-right: 36px;
+}
+
+select:hover {
+    border-color: #3a7afe;
+}
+
+select:focus {
+    outline: none;
+    border-color: #3a7afe;
+    box-shadow: 0 0 0 2px rgba(58, 122, 254, 0.2);
+}
+
+select option {
+    background: #2b2b31;
+    color: #fff;
+}
+
 /* ==== SCHEDULE TYPE PICKER ==== */
 .respawn-section {
     margin: 12px 0;
@@ -678,10 +711,15 @@ body {
     background: #2b2b31;
     border: 1px solid #333;
     border-radius: 6px;
+    display: none;
+}
+
+.respawn-section:not(.hidden) {
+    display: block;
 }
 
 .respawn-section.hidden {
-    display: none;
+    display: none !important;
 }
 
 .respawn-header {

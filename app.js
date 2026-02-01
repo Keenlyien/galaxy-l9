@@ -910,7 +910,6 @@ function openEditBoss(i) {
     }
     
     toggleRespawnUI();
-    renderScheduledTimesList();
     showBossModal(true);
 }
 
@@ -930,7 +929,6 @@ function openAddBoss() {
     
     scheduledTimes = [];
     toggleRespawnUI();
-    renderScheduledTimesList();
     showBossModal(true);
 }
 
@@ -1040,9 +1038,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const scheduleTypeSelect = document.getElementById("boss-schedule-type");
     if (scheduleTypeSelect) scheduleTypeSelect.addEventListener("change", toggleRespawnUI);
-
-    const addTimeBtn = document.getElementById("add-scheduled-time");
-    if (addTimeBtn) addTimeBtn.addEventListener("click", addScheduledTime);
 
     // Weekly respawn editor modal events
     const editScheduledBtn = document.getElementById("edit-scheduled-times");
