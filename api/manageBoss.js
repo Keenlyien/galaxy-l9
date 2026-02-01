@@ -1,143 +1,55 @@
 import { MongoClient } from "mongodb";
-import fs from "fs";
-import path from "path";
 
 let client;
 const uri = process.env.MONGODB_URI;
-const imagesDir = path.join(process.cwd(), "public", "images");
 
-// Ensure images directory exists
-if (!fs.existsSync(imagesDir)) {
-    fs.mkdirSync(imagesDir, { recursive: true });
+async function getClient() {
+  if (!client) {
+    client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    await client.connect();
+  }
+  return client;
 }
 
 export default async function handler(req, res) {
-    if (!client) {
-        try {
-            client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-            await client.connect();
-        } catch (err) {
-            console.error("MongoDB connection error:", err);
-            return res.status(500).json({ error: "Database connection failed" });
-        }
-    }
-
+  try {
+    const client = await getClient();
     const db = client.db("galaxy_l9");
-    const collection = db.collection("bosses");
+    const col = db.collection("bosses");
 
-    try {
-        if (req.method === "POST") {
-            // Add or Edit boss
-            const { name, location, level, respawn, imageData, editingBossName } = req.body;
+    if (req.method === "POST") {
+      const { action, boss } = req.body;
+      if (!action || !boss || !boss.name) return res.status(400).json({ error: "Missing action or boss.name" });
 
-            if (!name || !location || level === undefined || !respawn) {
-                return res.status(400).json({ error: "Missing required fields" });
-            }
+      if (action === "create" || action === "update") {
+        // Upsert by name
+        const update = {
+          $set: {
+            name: boss.name,
+            level: boss.level ?? 0,
+            location: boss.location ?? "",
+            respawn: boss.respawn ?? "",
+          }
+        };
+        if (boss.imageData) update.$set.imageData = boss.imageData;
 
-            let imagePath = null;
+        await col.updateOne({ name: boss.name }, update, { upsert: true });
+        return res.status(200).json({ success: true });
+      }
 
-            // Handle image upload
-            if (imageData && typeof imageData === "string") {
-                try {
-                    // Convert base64 to buffer
-                    const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
-                    const buffer = Buffer.from(base64Data, "base64");
-
-                    // Check size (4MB max)
-                    if (buffer.length > 4 * 1024 * 1024) {
-                        return res.status(400).json({ error: "Image must be less than 4MB" });
-                    }
-
-                    // Generate filename
-                    const timestamp = Date.now();
-                    const ext = imageData.match(/data:image\/(\w+)/)?.[1] || "png";
-                    const filename = `${name.replace(/\s+/g, "_")}_${timestamp}.${ext}`;
-                    imagePath = `images/${filename}`;
-
-                    // Save image file
-                    fs.writeFileSync(path.join(imagesDir, filename), buffer);
-                } catch (err) {
-                    console.error("Image processing error:", err);
-                    return res.status(500).json({ error: "Failed to process image" });
-                }
-            }
-
-            if (editingBossName) {
-                // Edit existing boss
-                const updateData = {
-                    name,
-                    location,
-                    level: parseInt(level),
-                    respawn
-                };
-
-                // Only update image path if new image was provided
-                if (imagePath) {
-                    updateData.image = imagePath;
-                }
-
-                await collection.updateOne(
-                    { name: editingBossName },
-                    { $set: updateData }
-                );
-
-                return res.status(200).json({ success: true, message: "Boss updated" });
-            } else {
-                // Check if boss already exists
-                const existing = await collection.findOne({ name });
-                if (existing) {
-                    return res.status(400).json({ error: "Boss already exists" });
-                }
-
-                // Add new boss
-                const newBoss = {
-                    name,
-                    location,
-                    level: parseInt(level),
-                    respawn,
-                    last_killed: null,
-                    image: imagePath
-                };
-
-                await collection.insertOne(newBoss);
-                return res.status(200).json({ success: true, message: "Boss added" });
-            }
-        } else if (req.method === "DELETE") {
-            // Delete boss
-            const { bossName } = req.body;
-
-            if (!bossName) {
-                return res.status(400).json({ error: "Missing bossName" });
-            }
-
-            // Get boss to find associated image
-            const boss = await collection.findOne({ name: bossName });
-
-            // Delete image file if exists
-            if (boss?.image) {
-                try {
-                    const imagePath = path.join(process.cwd(), "public", boss.image);
-                    if (fs.existsSync(imagePath)) {
-                        fs.unlinkSync(imagePath);
-                    }
-                } catch (err) {
-                    console.error("Failed to delete image:", err);
-                }
-            }
-
-            // Delete boss from database
-            const result = await collection.deleteOne({ name: bossName });
-
-            if (result.deletedCount === 0) {
-                return res.status(404).json({ error: "Boss not found" });
-            }
-
-            return res.status(200).json({ success: true, message: "Boss deleted" });
-        } else {
-            return res.status(405).json({ error: "Method Not Allowed" });
-        }
-    } catch (err) {
-        console.error("Error in manageBoss:", err);
-        return res.status(500).json({ error: err.message });
+      return res.status(400).json({ error: "Unknown action" });
     }
+
+    if (req.method === "DELETE") {
+      const { name } = req.body;
+      if (!name) return res.status(400).json({ error: "Missing name" });
+      await col.deleteOne({ name });
+      return res.status(200).json({ success: true });
+    }
+
+    res.status(405).json({ error: "Method Not Allowed" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 }

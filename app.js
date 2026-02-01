@@ -2,30 +2,17 @@
 let currentLang = 'en'; // default language
 
 
-// Optional: real-time updates via SSE (polling fallback for Vercel)
-let sseConnected = false;
-try {
-    const evtSource = new EventSource("/api/stream");
-    evtSource.onmessage = async (event) => {
-        sseConnected = true;
-        try {
-            const dbBosses = JSON.parse(event.data);
-            dbBosses.forEach(d => {
-                const serverVal = d.last_killed ?? null;
-                if (serverVal) localStorage.setItem("boss_kill_" + d.name, String(serverVal));
-                else localStorage.removeItem("boss_kill_" + d.name);
-            });
-            renderBosses();
-        } catch (e) {
-            console.error("Failed to parse SSE data:", e);
-        }
-    };
-    evtSource.onerror = () => {
-        evtSource.close();
-    };
-} catch (e) {
-    console.warn("SSE not available, using polling");
-}
+// Optional: real-time updates via SSE
+const evtSource = new EventSource("/api/stream");
+evtSource.onmessage = async (event) => {
+    const dbBosses = JSON.parse(event.data);
+    dbBosses.forEach(d => {
+        const serverVal = d.last_killed ?? null;
+        if (serverVal) localStorage.setItem("boss_kill_" + d.name, String(serverVal));
+        else localStorage.removeItem("boss_kill_" + d.name);
+    });
+    renderBosses();
+};
 
 //TIMEZONE SUPPORT
 // === TIMEZONE (SCHEDULED BOSSES ONLY) ===
@@ -52,27 +39,23 @@ async function updateBoss(name, killedAt) {
 async function loadBossStatusFromDB() {
     try {
         const res = await fetch("/api/getBosses", { cache: "no-store" });
-        let dbBosses = [];
-        
         if (!res.ok) {
-            console.error("getBosses failed:", res.status);
-            dbBosses = FALLBACK_BOSSES;
-        } else {
-            const data = await res.json();
-            dbBosses = (data && data.length > 0) ? data : FALLBACK_BOSSES;
+            console.error("getBosses failed:", res.status, await res.text());
+            return;
         }
+        const dbBosses = await res.json();
 
-        // Update the bosses array
-        bosses = dbBosses;
-
-        // Sync with localStorage
         dbBosses.forEach(d => {
+            // Use last_killed (DB field). Accept either `last_killed` or `status` for compatibility.
             const serverVal = d.last_killed ?? d.status ?? null;
+
             if (serverVal) {
+                // If serverVal is a Date string, convert to number; if it's number already, keep it.
                 const ts = typeof serverVal === "string" ? Date.parse(serverVal) : Number(serverVal);
                 if (!isNaN(ts)) {
                     localStorage.setItem("boss_kill_" + d.name, String(ts));
                 } else {
+                    // If parsing failed, remove key to treat as alive
                     localStorage.removeItem("boss_kill_" + d.name);
                 }
             } else {
@@ -80,12 +63,10 @@ async function loadBossStatusFromDB() {
             }
         });
 
-        // Re-render
+        // Re-render using updated localStorage values
         renderBosses();
     } catch (err) {
         console.error("Failed loading from DB:", err);
-        bosses = FALLBACK_BOSSES;
-        renderBosses();
     }
 }
 
@@ -94,7 +75,6 @@ const POLL_INTERVAL_MS = 5000;
 setInterval(loadBossStatusFromDB, POLL_INTERVAL_MS);
 
 // Run once at page load
-loadBosses();
 loadBossStatusFromDB();
 
 
@@ -115,32 +95,6 @@ function setLanguage(lang) {
         document.querySelector(".logout-btn").textContent = LANG[lang].logout_btn;
     }
 
-    // Update modal form labels
-    const formGroups = document.querySelectorAll(".form-group label");
-    if (formGroups.length > 0) {
-        const labels = [
-            LANG[lang].name,
-            LANG[lang].location,
-            LANG[lang].level,
-            LANG[lang].respawn_time,
-            LANG[lang].image
-        ];
-        formGroups.forEach((label, i) => {
-            if (labels[i]) label.textContent = labels[i] + ":";
-        });
-    }
-
-    // Update button texts in modal
-    const buttons = document.querySelectorAll(".btn-cancel, .btn-primary");
-    buttons.forEach(btn => {
-        if (btn.classList.contains("btn-cancel")) btn.textContent = LANG[lang].cancel;
-        if (btn.classList.contains("btn-primary")) btn.textContent = LANG[lang].save;
-    });
-
-    // Update Add Boss button
-    const addBossBtn = document.querySelector(".add-boss-btn");
-    if (addBossBtn) addBossBtn.textContent = LANG[lang].add_boss;
-
     // Re-render bosses so button text and status updates
     if (typeof renderBosses === "function") renderBosses();
 }
@@ -160,66 +114,37 @@ if (
 ) {
     localStorage.removeItem("logged_in");
     localStorage.removeItem("login_expiry");
-    window.location.href = "/";
+    window.location.href = "index.html";
 }
 
 function logout() {
     localStorage.removeItem("logged_in");
     localStorage.removeItem("login_expiry");
-    window.location.href = "/";
+    window.location.href = "index.html";
 }
 
 
 let bosses = [];
 let currentSort = "default";
 
-// Fallback bosses in case database fails
-const FALLBACK_BOSSES = [
-    { name: "Venatus", location: "Leafre Forest", level: 135, respawn: "24 Hour", last_killed: null },
-    { name: "Livera", location: "Leafre Forest", level: 135, respawn: "24 Hour", last_killed: null },
-    { name: "Neutro", location: "Leafre Forest", level: 135, respawn: "24 Hour", last_killed: null },
-    { name: "Lady Dalia", location: "Leafre Forest", level: 135, respawn: "24 Hour", last_killed: null },
-    { name: "Thymele", location: "Leafre Forest", level: 135, respawn: "24 Hour", last_killed: null },
-    { name: "Baron Braudmore", location: "Leafre Forest", level: 140, respawn: "Monday 12:00, Friday 12:00", last_killed: null },
-    { name: "Milavy", location: "Deep Sea", level: 150, respawn: "24 Hour", last_killed: null },
-    { name: "Wannitas", location: "Deep Sea", level: 150, respawn: "24 Hour", last_killed: null },
-    { name: "Duplican", location: "Tower of Oz", level: 155, respawn: "Monday 12:00, Friday 12:00", last_killed: null },
-    { name: "Shuliar", location: "Tower of Oz", level: 155, respawn: "Monday 12:00, Friday 12:00", last_killed: null },
-    { name: "Roderick", location: "Tower of Oz", level: 155, respawn: "Monday 12:00, Friday 12:00", last_killed: null },
-    { name: "Titore", location: "Tower of Oz", level: 155, respawn: "Monday 12:00, Friday 12:00", last_killed: null },
-    { name: "Larba", location: "Tower of Oz", level: 160, respawn: "Saturday 18:00", last_killed: null },
-    { name: "Catena", location: "Ancient Ruins", level: 165, respawn: "Sunday 18:00", last_killed: null },
-    { name: "Auraq", location: "Ancient Ruins", level: 165, respawn: "Saturday 18:00", last_killed: null },
-    { name: "Secreta", location: "Ancient Ruins", level: 170, respawn: "Saturday 18:00", last_killed: null },
-    { name: "Ordo", location: "Ancient Ruins", level: 170, respawn: "Sunday 18:00", last_killed: null },
-    { name: "Asta", location: "Dimensional Crack", level: 175, respawn: "Monday 18:00, Friday 18:00", last_killed: null },
-    { name: "Chaiflock", location: "Dimensional Crack", level: 180, respawn: "Monday 18:00, Friday 18:00", last_killed: null },
-    { name: "Benji", location: "Dimensional Crack", level: 185, respawn: "Monday 18:00, Friday 18:00", last_killed: null }
-];
 
-// Load bosses from API instead of static JSON
-async function loadBosses() {
+// Load bosses.json
+// Load bosses from server (replace static `bosses.json` use)
+async function loadBossesList() {
     try {
         const res = await fetch("/api/getBosses", { cache: "no-store" });
-        if (res.ok) {
-            const data = await res.json();
-            if (data && data.length > 0) {
-                bosses = data;
-            } else {
-                console.warn("No bosses in database, using fallback");
-                bosses = FALLBACK_BOSSES;
-            }
-        } else {
-            console.warn("Failed to load bosses, using fallback");
-            bosses = FALLBACK_BOSSES;
-        }
+        if (!res.ok) return console.error("getBosses failed:", res.status, await res.text());
+        const data = await res.json();
+        bosses = data;
         renderBosses();
     } catch (err) {
-        console.error("Failed to load bosses:", err);
-        bosses = FALLBACK_BOSSES;
-        renderBosses();
+        console.error("Failed to load bosses list:", err);
     }
 }
+
+// Replace earlier single call - we still poll for status, so periodically refresh boss list too
+setInterval(loadBossesList, POLL_INTERVAL_MS);
+loadBossesList();
 
 /* -----------------------------
    PARSING HELPERS
@@ -421,24 +346,20 @@ function renderBosses() {
                     ` : ""}
                 </div>
 
-                <div class="boss-right">
-                    <img src="${getBossImage(boss.name)}" class="boss-image">
-                </div>
+                        <div class="boss-right">
+                            <img src="${boss.imageData ? boss.imageData : getBossImage(boss.name)}" class="boss-image">
+                        </div>
             </div>
 
             ${hours !== null ? `
             <div class="btn-row">
                 <button class="btn kill-btn" onclick="killBoss(${i})">${LANG[currentLang].kill}</button>
                 <button class="btn unkill-btn" onclick="unkillBoss(${i})">${LANG[currentLang].unkill}</button>
-                <button class="btn edit-btn" onclick="openBossModal('${boss.name.replace(/'/g, "\\'")}')">${LANG[currentLang].edit_boss}</button>
-                <button class="btn delete-btn" onclick="if(confirm('Delete ${boss.name.replace(/'/g, "\\'")}?')) deleteFromCard('${boss.name.replace(/'/g, "\\'")}')">${LANG[currentLang].delete_boss}</button>
             </div>
-            ` : `
+            ` : ""}
             <div class="btn-row">
-                <button class="btn edit-btn" onclick="openBossModal('${boss.name.replace(/'/g, "\\'")}')">${LANG[currentLang].edit_boss}</button>
-                <button class="btn delete-btn" onclick="if(confirm('Delete ${boss.name.replace(/'/g, "\\'")}?')) deleteFromCard('${boss.name.replace(/'/g, "\\'")}')">${LANG[currentLang].delete_boss}</button>
+                <button class="btn" onclick="openEditBoss(${i})">Edit</button>
             </div>
-            `}
         `;
 
         container.appendChild(card);
@@ -453,14 +374,7 @@ function renderBosses() {
    IMAGE SUPPORT
 ----------------------------- */
 
-function getBossImage(bossName) {
-    // First check if boss has custom image from database
-    const boss = bosses.find(b => b.name === bossName);
-    if (boss?.image) {
-        return boss.image;
-    }
-
-    // Fallback to predefined images
+function getBossImage(name) {
     const images = {
         "Venatus": "images/Venatus.png",
         "Livera": "images/Livera.png",
@@ -484,7 +398,7 @@ function getBossImage(bossName) {
         "Benji": "images/Benji.png",
     };
 
-    return images[bossName] || "images/default.png";
+    return images[name] || "images/default.png";
 }
 
 /* -----------------------------
@@ -790,193 +704,131 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-/* ============================
-   BOSS MANAGEMENT MODAL
-============================ */
+// -----------------------------
+// ADD / EDIT / DELETE BOSSES (CLIENT)
+// -----------------------------
+let editingBossIndex = null;
 
-let editingBossName = null;
-
-function openBossModal(bossName = null) {
-    editingBossName = bossName;
+function showBossModal(show) {
     const modal = document.getElementById("boss-modal");
-    const titleEl = document.getElementById("boss-modal-title");
-    const form = document.getElementById("bossForm");
-    const deleteBtn = document.getElementById("deleteBossBtn");
-
-    form.reset();
-    document.getElementById("imageError").classList.remove("show");
-    document.getElementById("imagePreview").innerHTML = "";
-
-    if (bossName) {
-        // Edit mode
-        const boss = bosses.find(b => b.name === bossName);
-        if (boss) {
-            titleEl.textContent = LANG[currentLang].edit_boss_title;
-            document.getElementById("bossName").value = boss.name;
-            document.getElementById("bossLocation").value = boss.location;
-            document.getElementById("bossLevel").value = boss.level;
-            document.getElementById("bossRespawn").value = boss.respawn;
-            deleteBtn.style.display = "block";
-
-            // Show existing image
-            const imgSrc = getBossImage(boss.name);
-            if (imgSrc && imgSrc !== "images/default.png") {
-                document.getElementById("imagePreview").innerHTML = `<img src="${imgSrc}" alt="Boss image">`;
-            }
-        }
-    } else {
-        // Add mode
-        titleEl.textContent = LANG[currentLang].add_new_boss_title;
-        deleteBtn.style.display = "none";
-    }
-
-    modal.classList.remove("hidden");
+    if (!modal) return;
+    if (show) modal.classList.remove("hidden");
+    else modal.classList.add("hidden");
 }
 
-function closeBossModal() {
-    document.getElementById("boss-modal").classList.add("hidden");
-    editingBossName = null;
+function openEditBoss(i) {
+    editingBossIndex = i;
+    const boss = bosses[i];
+    document.getElementById("boss-modal-title").textContent = "Edit Boss";
+    document.getElementById("boss-name").value = boss.name || "";
+    document.getElementById("boss-location").value = boss.location || "";
+    document.getElementById("boss-level").value = boss.level || "";
+    document.getElementById("boss-respawn").value = boss.respawn || "";
+    document.getElementById("boss-image").value = null;
+    document.getElementById("boss-delete").style.display = "inline-block";
+    showBossModal(true);
 }
 
-function saveBoss() {
-    const name = document.getElementById("bossName").value.trim();
-    const location = document.getElementById("bossLocation").value.trim();
-    const level = parseInt(document.getElementById("bossLevel").value);
-    const respawn = document.getElementById("bossRespawn").value.trim();
-    const imageInput = document.getElementById("bossImage");
-    const imageError = document.getElementById("imageError");
+function openAddBoss() {
+    editingBossIndex = null;
+    document.getElementById("boss-modal-title").textContent = "Add Boss";
+    document.getElementById("boss-name").value = "";
+    document.getElementById("boss-location").value = "";
+    document.getElementById("boss-level").value = "";
+    document.getElementById("boss-respawn").value = "";
+    document.getElementById("boss-image").value = null;
+    document.getElementById("boss-delete").style.display = "none";
+    showBossModal(true);
+}
 
-    imageError.classList.remove("show");
-    imageError.textContent = "";
-
-    // Validation
-    if (!name || !location || !level || !respawn) {
-        alert("Please fill in all fields");
-        return;
-    }
-
-    // Check if name already exists (in add mode)
-    if (!editingBossName && bosses.some(b => b.name === name)) {
-        alert("Boss with this name already exists");
-        return;
-    }
-
-    // Handle image upload
-    if (imageInput.files.length > 0) {
-        const file = imageInput.files[0];
-
-        // Check file size (4MB max)
-        if (file.size > 4 * 1024 * 1024) {
-            imageError.textContent = LANG[currentLang].image_size_error;
-            imageError.classList.add("show");
-            return;
-        }
-
-        // Convert to base64
+async function readImageFileAsDataURL(file) {
+    return await new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = async (e) => {
-            const imageData = e.target.result;
-            await submitBoss(name, location, level, respawn, imageData);
-        };
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = err => reject(err);
         reader.readAsDataURL(file);
-    } else {
-        submitBoss(name, location, level, respawn, null);
-    }
+    });
 }
 
-async function submitBoss(name, location, level, respawn, imageData) {
-    try {
-        const payload = {
-            name,
-            location,
-            level,
-            respawn,
-            imageData,
-            editingBossName
-        };
+async function saveBossFromModal() {
+    const nameEl = document.getElementById("boss-name");
+    const locEl = document.getElementById("boss-location");
+    const lvlEl = document.getElementById("boss-level");
+    const respawnEl = document.getElementById("boss-respawn");
+    const imgEl = document.getElementById("boss-image");
 
+    const name = nameEl.value.trim();
+    if (!name) return alert("Name is required");
+
+    const payload = {
+        name,
+        location: locEl.value.trim(),
+        level: Number(lvlEl.value) || 0,
+        respawn: respawnEl.value.trim(),
+        imageData: null
+    };
+
+    if (imgEl && imgEl.files && imgEl.files[0]) {
+        const file = imgEl.files[0];
+        if (file.size > 4 * 1024 * 1024) return alert("Image must be 4MB or smaller");
+        try {
+            payload.imageData = await readImageFileAsDataURL(file);
+        } catch (err) {
+            console.error("Failed reading image:", err);
+            return alert("Failed to read image file");
+        }
+    }
+
+    const action = editingBossIndex === null ? "create" : "update";
+    try {
         const res = await fetch("/api/manageBoss", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ action, boss: payload })
         });
-
-        if (!res.ok) {
-            const errorData = await res.json();
-            alert(`Error: ${errorData.error}`);
-            return;
-        }
-
-        // Reload bosses from server
-        await loadBossStatusFromDB();
-        closeBossModal();
+        if (!res.ok) throw new Error(await res.text());
+        await loadBossesList();
+        showBossModal(false);
     } catch (err) {
         console.error("Failed to save boss:", err);
         alert("Failed to save boss");
     }
 }
 
-async function deleteBoss() {
-    if (!editingBossName) return;
-
-    if (!confirm(`Delete boss "${editingBossName}"?`)) return;
-
+async function deleteBossFromModal() {
+    if (editingBossIndex === null) return;
+    const boss = bosses[editingBossIndex];
+    if (!confirm(`Delete boss ${boss.name}? This cannot be undone.`)) return;
     try {
         const res = await fetch("/api/manageBoss", {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bossName: editingBossName })
+            body: JSON.stringify({ name: boss.name })
         });
-
-        if (!res.ok) {
-            const errorData = await res.json();
-            alert(`Error: ${errorData.error}`);
-            return;
-        }
-
-        // Reload bosses from server
-        await loadBossStatusFromDB();
-        closeBossModal();
+        if (!res.ok) throw new Error(await res.text());
+        await loadBossesList();
+        showBossModal(false);
     } catch (err) {
         console.error("Failed to delete boss:", err);
         alert("Failed to delete boss");
     }
 }
 
-// Image preview
+// Wire modal buttons
 document.addEventListener("DOMContentLoaded", () => {
-    const imageInput = document.getElementById("bossImage");
-    if (imageInput) {
-        imageInput.addEventListener("change", (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const preview = document.getElementById("imagePreview");
-                    preview.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
+    const addBtn = document.getElementById("addBossBtn");
+    if (addBtn) addBtn.addEventListener("click", openAddBoss);
+
+    const saveBtn = document.getElementById("boss-save");
+    if (saveBtn) saveBtn.addEventListener("click", saveBossFromModal);
+
+    const cancelBtn = document.getElementById("boss-cancel");
+    if (cancelBtn) cancelBtn.addEventListener("click", () => showBossModal(false));
+
+    const delBtn = document.getElementById("boss-delete");
+    if (delBtn) delBtn.addEventListener("click", deleteBossFromModal);
 });
-async function deleteFromCard(bossName) {
-    try {
-        const res = await fetch("/api/manageBoss", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bossName })
-        });
 
-        if (!res.ok) {
-            const errorData = await res.json();
-            alert(`Error: ${errorData.error}`);
-            return;
-        }
 
-        await loadBossStatusFromDB();
-    } catch (err) {
-        console.error("Failed to delete boss:", err);
-        alert("Failed to delete boss");
-    }
-}    
+
+    
