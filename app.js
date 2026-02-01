@@ -44,6 +44,7 @@ async function loadBossStatusFromDB() {
             return;
         }
         const dbBosses = await res.json();
+        console.log("Loaded bosses from DB:", dbBosses.length, "bosses");
 
         // Update bosses list
         bosses = dbBosses;
@@ -211,6 +212,13 @@ function setTimezone(offset) {
 function renderBosses() {
     const container = document.getElementById("boss-container");
     container.innerHTML = "";
+
+    // Safety check: LANG must be loaded
+    if (!LANG || !LANG[currentLang]) {
+        console.warn("LANG not yet loaded, retrying...");
+        setTimeout(renderBosses, 100);
+        return;
+    }
 
     const now = Date.now(); // Capture current time once per render
 
