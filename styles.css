@@ -143,7 +143,14 @@ body {
 
 /* SORTING SELECTOR  */
 .sort-container {
-    margin-top: 8px;
+    /* place sort + Add Boss inside the header to match reference layout */
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 12px;
+    align-items: center;
 }
 
 #sortSelect {
@@ -766,6 +773,8 @@ select option {
     align-items: center;
     gap: 12px;
     width: 100%;
+    position: relative;
+    padding-top: 6px;
 }
 
 .respawn-summary.pill {
@@ -816,7 +825,7 @@ select option {
 }
 .scheduled-inline .duration-input {
     flex: 0 0 auto;
-    width: 120px; /* narrower to avoid overflow */
+    width: 100px; /* narrower to avoid overflow and match hourly style */
 }
 .scheduled-inline select,
 .scheduled-inline input[type="number"] {
@@ -828,9 +837,14 @@ select option {
     color: #fff;
 }
 
-/* ensure Edit button is clickable and inside modal */
+/* position Edit button top-right inside the respawn section */
 #edit-scheduled-times {
-    z-index: 5;
+    z-index: 30;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
 }
 
 /* make sure scheduled summary doesn't overflow modal */
@@ -838,6 +852,14 @@ select option {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+}
+
+/* ensure scheduled inline labels match unscheduled durations */
+.scheduled-inline .duration-input label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: #aaa;
 }
 
 .rp-pill {
