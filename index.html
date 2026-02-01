@@ -32,7 +32,7 @@ if (
     loginExpiry &&
     Date.now() < Number(loginExpiry)
 ) {
-    window.location.href = "dashboard.html";
+    window.location.href = "/dashboard";
 }
 
 
@@ -74,7 +74,7 @@ function login() {
     localStorage.setItem("logged_in", "true");
     localStorage.setItem("login_expiry", Date.now() + LOGIN_DURATION);
 
-    window.location.href = "dashboard.html";
+    window.location.href = "/dashboard";
 } else {
         showNotification("Login failed: Username and password do not match", "error");
     }

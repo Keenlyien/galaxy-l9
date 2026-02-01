@@ -40,13 +40,19 @@ async function loadBossStatusFromDB() {
     try {
         const res = await fetch("/api/getBosses", { cache: "no-store" });
         if (!res.ok) {
-            console.error("getBosses failed:", res.status, await res.text());
+            console.error("getBosses failed:", res.status);
+            bosses = FALLBACK_BOSSES;
+            renderBosses();
             return;
         }
         const dbBosses = await res.json();
 
-        // Update the bosses array
-        bosses = dbBosses;
+        if (!dbBosses || dbBosses.length === 0) {
+            bosses = FALLBACK_BOSSES;
+        } else {
+            // Update the bosses array
+            bosses = dbBosses;
+        }
 
         dbBosses.forEach(d => {
             // Use last_killed (DB field). Accept either `last_killed` or `status` for compatibility.
@@ -70,6 +76,8 @@ async function loadBossStatusFromDB() {
         renderBosses();
     } catch (err) {
         console.error("Failed loading from DB:", err);
+        bosses = FALLBACK_BOSSES;
+        renderBosses();
     }
 }
 
@@ -144,30 +152,64 @@ if (
 ) {
     localStorage.removeItem("logged_in");
     localStorage.removeItem("login_expiry");
-    window.location.href = "index.html";
+    window.location.href = "/";
 }
 
 function logout() {
     localStorage.removeItem("logged_in");
     localStorage.removeItem("login_expiry");
-    window.location.href = "index.html";
+    window.location.href = "/";
 }
 
 
 let bosses = [];
 let currentSort = "default";
 
+// Fallback bosses in case database fails
+const FALLBACK_BOSSES = [
+    { name: "Venatus", location: "Leafre Forest", level: 135, respawn: "24 Hour", last_killed: null },
+    { name: "Livera", location: "Leafre Forest", level: 135, respawn: "24 Hour", last_killed: null },
+    { name: "Neutro", location: "Leafre Forest", level: 135, respawn: "24 Hour", last_killed: null },
+    { name: "Lady Dalia", location: "Leafre Forest", level: 135, respawn: "24 Hour", last_killed: null },
+    { name: "Thymele", location: "Leafre Forest", level: 135, respawn: "24 Hour", last_killed: null },
+    { name: "Baron Braudmore", location: "Leafre Forest", level: 140, respawn: "Monday 12:00, Friday 12:00", last_killed: null },
+    { name: "Milavy", location: "Deep Sea", level: 150, respawn: "24 Hour", last_killed: null },
+    { name: "Wannitas", location: "Deep Sea", level: 150, respawn: "24 Hour", last_killed: null },
+    { name: "Duplican", location: "Tower of Oz", level: 155, respawn: "Monday 12:00, Friday 12:00", last_killed: null },
+    { name: "Shuliar", location: "Tower of Oz", level: 155, respawn: "Monday 12:00, Friday 12:00", last_killed: null },
+    { name: "Roderick", location: "Tower of Oz", level: 155, respawn: "Monday 12:00, Friday 12:00", last_killed: null },
+    { name: "Titore", location: "Tower of Oz", level: 155, respawn: "Monday 12:00, Friday 12:00", last_killed: null },
+    { name: "Larba", location: "Tower of Oz", level: 160, respawn: "Saturday 18:00", last_killed: null },
+    { name: "Catena", location: "Ancient Ruins", level: 165, respawn: "Sunday 18:00", last_killed: null },
+    { name: "Auraq", location: "Ancient Ruins", level: 165, respawn: "Saturday 18:00", last_killed: null },
+    { name: "Secreta", location: "Ancient Ruins", level: 170, respawn: "Saturday 18:00", last_killed: null },
+    { name: "Ordo", location: "Ancient Ruins", level: 170, respawn: "Sunday 18:00", last_killed: null },
+    { name: "Asta", location: "Dimensional Crack", level: 175, respawn: "Monday 18:00, Friday 18:00", last_killed: null },
+    { name: "Chaiflock", location: "Dimensional Crack", level: 180, respawn: "Monday 18:00, Friday 18:00", last_killed: null },
+    { name: "Benji", location: "Dimensional Crack", level: 185, respawn: "Monday 18:00, Friday 18:00", last_killed: null }
+];
 
 // Load bosses from API instead of static JSON
 async function loadBosses() {
     try {
         const res = await fetch("/api/getBosses", { cache: "no-store" });
         if (res.ok) {
-            bosses = await res.json();
-            renderBosses();
+            const data = await res.json();
+            if (data && data.length > 0) {
+                bosses = data;
+            } else {
+                console.warn("No bosses in database, using fallback");
+                bosses = FALLBACK_BOSSES;
+            }
+        } else {
+            console.warn("Failed to load bosses, using fallback");
+            bosses = FALLBACK_BOSSES;
         }
+        renderBosses();
     } catch (err) {
         console.error("Failed to load bosses:", err);
+        bosses = FALLBACK_BOSSES;
+        renderBosses();
     }
 }
 

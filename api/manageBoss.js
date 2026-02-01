@@ -4,7 +4,7 @@ import path from "path";
 
 let client;
 const uri = process.env.MONGODB_URI;
-const imagesDir = path.join(process.cwd(), "images");
+const imagesDir = path.join(process.cwd(), "public", "images");
 
 // Ensure images directory exists
 if (!fs.existsSync(imagesDir)) {
@@ -13,8 +13,13 @@ if (!fs.existsSync(imagesDir)) {
 
 export default async function handler(req, res) {
     if (!client) {
-        client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-        await client.connect();
+        try {
+            client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+            await client.connect();
+        } catch (err) {
+            console.error("MongoDB connection error:", err);
+            return res.status(500).json({ error: "Database connection failed" });
+        }
     }
 
     const db = client.db("galaxy_l9");
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
             let imagePath = null;
 
             // Handle image upload
-            if (imageData) {
+            if (imageData && typeof imageData === "string") {
                 try {
                     // Convert base64 to buffer
                     const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
@@ -78,18 +83,21 @@ export default async function handler(req, res) {
 
                 return res.status(200).json({ success: true, message: "Boss updated" });
             } else {
+                // Check if boss already exists
+                const existing = await collection.findOne({ name });
+                if (existing) {
+                    return res.status(400).json({ error: "Boss already exists" });
+                }
+
                 // Add new boss
                 const newBoss = {
                     name,
                     location,
                     level: parseInt(level),
                     respawn,
-                    last_killed: null
+                    last_killed: null,
+                    image: imagePath
                 };
-
-                if (imagePath) {
-                    newBoss.image = imagePath;
-                }
 
                 await collection.insertOne(newBoss);
                 return res.status(200).json({ success: true, message: "Boss added" });
@@ -108,7 +116,7 @@ export default async function handler(req, res) {
             // Delete image file if exists
             if (boss?.image) {
                 try {
-                    const imagePath = path.join(process.cwd(), boss.image);
+                    const imagePath = path.join(process.cwd(), "public", boss.image);
                     if (fs.existsSync(imagePath)) {
                         fs.unlinkSync(imagePath);
                     }
