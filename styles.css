@@ -657,6 +657,94 @@ body {
     background: #c2192b;
 }
 
+/* ==== SCHEDULE TYPE PICKER ==== */
+.respawn-section {
+    margin: 12px 0;
+    padding: 12px;
+    background: #2b2b31;
+    border-radius: 6px;
+}
+
+.respawn-section.hidden {
+    display: none;
+}
+
+.respawn-section label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.respawn-list {
+    margin-bottom: 12px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.respawn-item {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: #1e1e22;
+    border-radius: 4px;
+    align-items: center;
+}
+
+.respawn-item select {
+    flex: 1;
+    padding: 6px;
+    background: #333;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #fff;
+}
+
+.respawn-item input {
+    width: 60px;
+    padding: 6px;
+    background: #333;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #fff;
+}
+
+.respawn-item button {
+    padding: 4px 8px;
+    background: #e63946;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.duration-picker {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.duration-input {
+    flex: 1;
+}
+
+.duration-input label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.duration-input input {
+    width: 100%;
+    padding: 8px;
+    background: #2b2b31;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #fff;
+}
+
+
+
 /* ==== BOSS IMAGE PLACEHOLDER ==== */
 .boss-image-placeholder {
     width: 100%;

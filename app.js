@@ -713,20 +713,37 @@ async function readImageFileAsDataURL(file) {
 }
 
 async function saveBossFromModal() {
-    const nameEl = document.getElementById("boss-name");
-    const locEl = document.getElementById("boss-location");
-    const lvlEl = document.getElementById("boss-level");
-    const respawnEl = document.getElementById("boss-respawn");
+    // Validation
+    const name = document.getElementById("boss-name").value.trim();
+    const location = document.getElementById("boss-location").value.trim();
+    const level = document.getElementById("boss-level").value.trim();
+    const scheduleType = document.getElementById("boss-schedule-type").value;
     const imgEl = document.getElementById("boss-image");
 
-    const name = nameEl.value.trim();
-    if (!name) return alert("Name is required");
+    if (!name) return alert("Name is required *");
+    if (!location) return alert("Location is required *");
+    if (!level) return alert("Level is required *");
+    if (!scheduleType) return alert("Schedule Type is required *");
+
+    // Build respawn string based on schedule type
+    let respawn = "";
+    if (scheduleType === "scheduled") {
+        if (scheduledTimes.length === 0) return alert("Please add at least one scheduled time *");
+        respawn = scheduledTimes.map(t => `${t.day} ${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`).join(", ");
+    } else if (scheduleType === "unscheduled") {
+        const days = parseInt(document.getElementById("boss-respawn-days").value, 10) || 0;
+        const hours = parseInt(document.getElementById("boss-respawn-hours").value, 10) || 0;
+        const minutes = parseInt(document.getElementById("boss-respawn-minutes").value, 10) || 0;
+        const totalHours = days * 24 + hours;
+        if (totalHours === 0 && minutes === 0) return alert("Respawn duration must be greater than 0 *");
+        respawn = `${totalHours} Hour${minutes > 0 ? ` ${minutes} Minute` : ""}`;
+    }
 
     const payload = {
         name,
-        location: locEl.value.trim(),
-        level: Number(lvlEl.value) || 0,
-        respawn: respawnEl.value.trim(),
+        location,
+        level: Number(level),
+        respawn,
         imageData: null
     };
 
@@ -749,7 +766,6 @@ async function saveBossFromModal() {
             body: JSON.stringify({ action, boss: payload })
         });
         if (!res.ok) throw new Error(await res.text());
-        // Reload bosses after successful save
         await loadBossStatusFromDB();
         showBossModal(false);
     } catch (err) {
@@ -778,6 +794,152 @@ async function deleteBossFromModal() {
     }
 }
 
+// ADD / EDIT / DELETE BOSSES - MODAL LOGIC
+// ============================================
+let editingBossIndex = null;
+let scheduledTimes = [];
+
+function showBossModal(show) {
+    const modal = document.getElementById("boss-modal");
+    if (!modal) return;
+    if (show) modal.classList.remove("hidden");
+    else modal.classList.add("hidden");
+}
+
+function toggleRespawnUI() {
+    const scheduleType = document.getElementById("boss-schedule-type").value;
+    const scheduledDiv = document.getElementById("scheduled-respawn");
+    const unscheduledDiv = document.getElementById("unscheduled-respawn");
+    
+    if (scheduleType === "scheduled") {
+        scheduledDiv?.classList.remove("hidden");
+        unscheduledDiv?.classList.add("hidden");
+    } else if (scheduleType === "unscheduled") {
+        scheduledDiv?.classList.add("hidden");
+        unscheduledDiv?.classList.remove("hidden");
+    } else {
+        scheduledDiv?.classList.add("hidden");
+        unscheduledDiv?.classList.add("hidden");
+    }
+}
+
+function renderScheduledTimesList() {
+    const container = document.getElementById("scheduled-times-list");
+    if (!container) return;
+    container.innerHTML = "";
+    
+    scheduledTimes.forEach((time, idx) => {
+        const item = document.createElement("div");
+        item.className = "respawn-item";
+        item.innerHTML = `
+            <select onchange="updateScheduledTime(${idx}, 'day', this.value)">
+                <option value="Monday" ${time.day === "Monday" ? "selected" : ""}>Monday</option>
+                <option value="Tuesday" ${time.day === "Tuesday" ? "selected" : ""}>Tuesday</option>
+                <option value="Wednesday" ${time.day === "Wednesday" ? "selected" : ""}>Wednesday</option>
+                <option value="Thursday" ${time.day === "Thursday" ? "selected" : ""}>Thursday</option>
+                <option value="Friday" ${time.day === "Friday" ? "selected" : ""}>Friday</option>
+                <option value="Saturday" ${time.day === "Saturday" ? "selected" : ""}>Saturday</option>
+                <option value="Sunday" ${time.day === "Sunday" ? "selected" : ""}>Sunday</option>
+            </select>
+            <input type="number" min="0" max="23" value="${time.hour}" onchange="updateScheduledTime(${idx}, 'hour', this.value)" placeholder="HH">
+            <input type="number" min="0" max="59" value="${time.minute}" onchange="updateScheduledTime(${idx}, 'minute', this.value)" placeholder="MM">
+            <button type="button" onclick="removeScheduledTime(${idx})">Remove</button>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function updateScheduledTime(idx, field, value) {
+    if (field === "day") scheduledTimes[idx].day = value;
+    if (field === "hour") scheduledTimes[idx].hour = parseInt(value, 10) || 0;
+    if (field === "minute") scheduledTimes[idx].minute = parseInt(value, 10) || 0;
+}
+
+function removeScheduledTime(idx) {
+    scheduledTimes.splice(idx, 1);
+    renderScheduledTimesList();
+}
+
+function addScheduledTime() {
+    scheduledTimes.push({ day: "Monday", hour: 12, minute: 0 });
+    renderScheduledTimesList();
+}
+
+function openEditBoss(i) {
+    editingBossIndex = i;
+    const boss = bosses[i];
+    document.getElementById("boss-modal-title").textContent = "Edit Boss";
+    document.getElementById("boss-name").value = boss.name || "";
+    document.getElementById("boss-location").value = boss.location || "";
+    document.getElementById("boss-level").value = boss.level || "";
+    document.getElementById("boss-image").value = null;
+    const deleteBtn = document.getElementById("boss-delete");
+    if (deleteBtn) deleteBtn.style.display = "inline-block";
+    
+    // Parse existing respawn to determine schedule type
+    const respawn = boss.respawn || "";
+    scheduledTimes = [];
+    
+    const hasWeekday = /Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday/i.test(respawn);
+    if (hasWeekday) {
+        document.getElementById("boss-schedule-type").value = "scheduled";
+        const entries = respawn.split(",").map(t => t.trim());
+        entries.forEach(entry => {
+            const match = entry.match(/(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\d{1,2}):(\d{2})/i);
+            if (match) {
+                scheduledTimes.push({
+                    day: match[1],
+                    hour: parseInt(match[2], 10),
+                    minute: parseInt(match[3], 10)
+                });
+            }
+        });
+    } else if (/Hour/i.test(respawn)) {
+        document.getElementById("boss-schedule-type").value = "unscheduled";
+        const match = respawn.match(/(\d+)\s*Hour/i);
+        const totalHours = match ? parseInt(match[1], 10) : 0;
+        const days = Math.floor(totalHours / 24);
+        const hours = totalHours % 24;
+        document.getElementById("boss-respawn-days").value = days;
+        document.getElementById("boss-respawn-hours").value = hours;
+        document.getElementById("boss-respawn-minutes").value = 0;
+    }
+    
+    toggleRespawnUI();
+    renderScheduledTimesList();
+    showBossModal(true);
+}
+
+function openAddBoss() {
+    editingBossIndex = null;
+    document.getElementById("boss-modal-title").textContent = "Add Boss";
+    document.getElementById("boss-name").value = "";
+    document.getElementById("boss-location").value = "";
+    document.getElementById("boss-level").value = "";
+    document.getElementById("boss-schedule-type").value = "";
+    document.getElementById("boss-respawn-days").value = "0";
+    document.getElementById("boss-respawn-hours").value = "0";
+    document.getElementById("boss-respawn-minutes").value = "0";
+    document.getElementById("boss-image").value = null;
+    const deleteBtn = document.getElementById("boss-delete");
+    if (deleteBtn) deleteBtn.style.display = "none";
+    
+    scheduledTimes = [];
+    toggleRespawnUI();
+    renderScheduledTimesList();
+    showBossModal(true);
+}
+
+async function readImageFileAsDataURL(file) {
+    return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = err => reject(err);
+        reader.readAsDataURL(file);
+    });
+}
+
+
 // Wire modal buttons
 document.addEventListener("DOMContentLoaded", () => {
     const addBtn = document.getElementById("addBossBtn");
@@ -791,8 +953,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const delBtn = document.getElementById("boss-delete");
     if (delBtn) delBtn.addEventListener("click", deleteBossFromModal);
+
+    const scheduleTypeSelect = document.getElementById("boss-schedule-type");
+    if (scheduleTypeSelect) scheduleTypeSelect.addEventListener("change", toggleRespawnUI);
+
+    const addTimeBtn = document.getElementById("add-scheduled-time");
+    if (addTimeBtn) addTimeBtn.addEventListener("click", addScheduledTime);
 });
-
-
-
-    

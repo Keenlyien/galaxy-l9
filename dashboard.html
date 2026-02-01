@@ -79,26 +79,56 @@
     <div class="modal-content">
         <h2 id="boss-modal-title">Add Boss</h2>
         <form id="boss-form">
-            <label>Name</label>
-            <input type="text" id="boss-name" required>
-            <label>Location</label>
-            <input type="text" id="boss-location">
-            <label>Level</label>
-            <input type="number" id="boss-level" min="0">
-            <label>Respawn (text)</label>
-            <input type="text" id="boss-respawn" placeholder="e.g. 24 Hour or Monday 12:00, Thursday 18:00">
-            <label>Image (max 4MB)</label>
-            <input type="file" id="boss-image" accept="image/*">
-            <div style="margin-top:8px">
-                <button type="button" id="boss-save" class="btn">Save</button>
-                <button type="button" id="boss-cancel" class="btn">Cancel</button>
-                <button type="button" id="boss-delete" class="btn danger" style="float:right; display:none;">Delete</button>
-            </div>
-        </form>
+      <label>Name *</label>
+      <input type="text" id="boss-name" required>
+      
+      <label>Location *</label>
+      <input type="text" id="boss-location" required>
+      
+      <label>Level *</label>
+      <input type="number" id="boss-level" min="0" required>
+      
+      <label>Schedule Type *</label>
+      <select id="boss-schedule-type" required>
+        <option value="">-- Select --</option>
+        <option value="scheduled">Scheduled (Weekly)</option>
+        <option value="unscheduled">Unscheduled (Hourly)</option>
+      </select>
+
+      <!-- Scheduled respawn UI (weekly) -->
+      <div id="scheduled-respawn" class="respawn-section hidden">
+        <label>Respawn Times (Weekly)</label>
+        <div class="respawn-list" id="scheduled-times-list"></div>
+        <button type="button" class="btn" id="add-scheduled-time">+ Add Time</button>
+      </div>
+
+      <!-- Unscheduled respawn UI (hourly) -->
+      <div id="unscheduled-respawn" class="respawn-section hidden">
+        <label>Respawn Duration *</label>
+        <div class="duration-picker">
+          <div class="duration-input">
+            <label>Days</label>
+            <input type="number" id="boss-respawn-days" min="0" value="0">
+          </div>
+          <div class="duration-input">
+            <label>Hours</label>
+            <input type="number" id="boss-respawn-hours" min="0" max="23" value="0">
+          </div>
+          <div class="duration-input">
+            <label>Minutes</label>
+            <input type="number" id="boss-respawn-minutes" min="0" max="59" value="0">
+          </div>
+        </div>
+      </div>
+
+      <label>Image (optional, max 4MB)</label>
+      <input type="file" id="boss-image" accept="image/*">
+      
+      <div style="margin-top:16px">
     </div>
 </div>
 
-<!-- Scripts -->>
+<!-- Scripts -->
 
 <script src="lang.js"></script>
 <script src="app.js"></script>
