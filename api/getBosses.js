@@ -17,13 +17,14 @@ export default async function handler(req, res) {
         const db = client.db("galaxy_l9");
         const bosses = await db.collection("bosses").find({}).toArray();
 
-        // Ensure we return last_killed (number) or null
+        // Ensure we return all necessary fields
         const cleaned = bosses.map(b => ({
             name: b.name,
             level: b.level,
             location: b.location,
             respawn: b.respawn,
-            last_killed: b.last_killed ?? null
+            last_killed: b.last_killed ?? null,
+            image: b.image ?? null
         }));
 
         res.status(200).json(cleaned);

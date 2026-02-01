@@ -45,6 +45,9 @@ async function loadBossStatusFromDB() {
         }
         const dbBosses = await res.json();
 
+        // Update the bosses array
+        bosses = dbBosses;
+
         dbBosses.forEach(d => {
             // Use last_killed (DB field). Accept either `last_killed` or `status` for compatibility.
             const serverVal = d.last_killed ?? d.status ?? null;
@@ -75,6 +78,7 @@ const POLL_INTERVAL_MS = 5000;
 setInterval(loadBossStatusFromDB, POLL_INTERVAL_MS);
 
 // Run once at page load
+loadBosses();
 loadBossStatusFromDB();
 
 
@@ -94,6 +98,32 @@ function setLanguage(lang) {
         document.querySelector(".header-title").textContent = LANG[lang].boss_schedule_title;
         document.querySelector(".logout-btn").textContent = LANG[lang].logout_btn;
     }
+
+    // Update modal form labels
+    const formGroups = document.querySelectorAll(".form-group label");
+    if (formGroups.length > 0) {
+        const labels = [
+            LANG[lang].name,
+            LANG[lang].location,
+            LANG[lang].level,
+            LANG[lang].respawn_time,
+            LANG[lang].image
+        ];
+        formGroups.forEach((label, i) => {
+            if (labels[i]) label.textContent = labels[i] + ":";
+        });
+    }
+
+    // Update button texts in modal
+    const buttons = document.querySelectorAll(".btn-cancel, .btn-primary");
+    buttons.forEach(btn => {
+        if (btn.classList.contains("btn-cancel")) btn.textContent = LANG[lang].cancel;
+        if (btn.classList.contains("btn-primary")) btn.textContent = LANG[lang].save;
+    });
+
+    // Update Add Boss button
+    const addBossBtn = document.querySelector(".add-boss-btn");
+    if (addBossBtn) addBossBtn.textContent = LANG[lang].add_boss;
 
     // Re-render bosses so button text and status updates
     if (typeof renderBosses === "function") renderBosses();
@@ -128,13 +158,18 @@ let bosses = [];
 let currentSort = "default";
 
 
-// Load bosses.json
-fetch("bosses.json")
-    .then(res => res.json())
-    .then(data => {
-        bosses = data;
-        renderBosses();
-    });
+// Load bosses from API instead of static JSON
+async function loadBosses() {
+    try {
+        const res = await fetch("/api/getBosses", { cache: "no-store" });
+        if (res.ok) {
+            bosses = await res.json();
+            renderBosses();
+        }
+    } catch (err) {
+        console.error("Failed to load bosses:", err);
+    }
+}
 
 /* -----------------------------
    PARSING HELPERS
@@ -345,8 +380,15 @@ function renderBosses() {
             <div class="btn-row">
                 <button class="btn kill-btn" onclick="killBoss(${i})">${LANG[currentLang].kill}</button>
                 <button class="btn unkill-btn" onclick="unkillBoss(${i})">${LANG[currentLang].unkill}</button>
+                <button class="btn edit-btn" onclick="openBossModal('${boss.name.replace(/'/g, "\\'")}')">${LANG[currentLang].edit_boss}</button>
+                <button class="btn delete-btn" onclick="if(confirm('Delete ${boss.name.replace(/'/g, "\\'")}?')) deleteFromCard('${boss.name.replace(/'/g, "\\'")}')">${LANG[currentLang].delete_boss}</button>
             </div>
-            ` : ""}
+            ` : `
+            <div class="btn-row">
+                <button class="btn edit-btn" onclick="openBossModal('${boss.name.replace(/'/g, "\\'")}')">${LANG[currentLang].edit_boss}</button>
+                <button class="btn delete-btn" onclick="if(confirm('Delete ${boss.name.replace(/'/g, "\\'")}?')) deleteFromCard('${boss.name.replace(/'/g, "\\'")}')">${LANG[currentLang].delete_boss}</button>
+            </div>
+            `}
         `;
 
         container.appendChild(card);
@@ -361,7 +403,14 @@ function renderBosses() {
    IMAGE SUPPORT
 ----------------------------- */
 
-function getBossImage(name) {
+function getBossImage(bossName) {
+    // First check if boss has custom image from database
+    const boss = bosses.find(b => b.name === bossName);
+    if (boss?.image) {
+        return boss.image;
+    }
+
+    // Fallback to predefined images
     const images = {
         "Venatus": "images/Venatus.png",
         "Livera": "images/Livera.png",
@@ -385,7 +434,7 @@ function getBossImage(name) {
         "Benji": "images/Benji.png",
     };
 
-    return images[name] || "images/default.png";
+    return images[bossName] || "images/default.png";
 }
 
 /* -----------------------------
@@ -691,5 +740,193 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
+/* ============================
+   BOSS MANAGEMENT MODAL
+============================ */
 
-    
+let editingBossName = null;
+
+function openBossModal(bossName = null) {
+    editingBossName = bossName;
+    const modal = document.getElementById("boss-modal");
+    const titleEl = document.getElementById("boss-modal-title");
+    const form = document.getElementById("bossForm");
+    const deleteBtn = document.getElementById("deleteBossBtn");
+
+    form.reset();
+    document.getElementById("imageError").classList.remove("show");
+    document.getElementById("imagePreview").innerHTML = "";
+
+    if (bossName) {
+        // Edit mode
+        const boss = bosses.find(b => b.name === bossName);
+        if (boss) {
+            titleEl.textContent = LANG[currentLang].edit_boss_title;
+            document.getElementById("bossName").value = boss.name;
+            document.getElementById("bossLocation").value = boss.location;
+            document.getElementById("bossLevel").value = boss.level;
+            document.getElementById("bossRespawn").value = boss.respawn;
+            deleteBtn.style.display = "block";
+
+            // Show existing image
+            const imgSrc = getBossImage(boss.name);
+            if (imgSrc && imgSrc !== "images/default.png") {
+                document.getElementById("imagePreview").innerHTML = `<img src="${imgSrc}" alt="Boss image">`;
+            }
+        }
+    } else {
+        // Add mode
+        titleEl.textContent = LANG[currentLang].add_new_boss_title;
+        deleteBtn.style.display = "none";
+    }
+
+    modal.classList.remove("hidden");
+}
+
+function closeBossModal() {
+    document.getElementById("boss-modal").classList.add("hidden");
+    editingBossName = null;
+}
+
+function saveBoss() {
+    const name = document.getElementById("bossName").value.trim();
+    const location = document.getElementById("bossLocation").value.trim();
+    const level = parseInt(document.getElementById("bossLevel").value);
+    const respawn = document.getElementById("bossRespawn").value.trim();
+    const imageInput = document.getElementById("bossImage");
+    const imageError = document.getElementById("imageError");
+
+    imageError.classList.remove("show");
+    imageError.textContent = "";
+
+    // Validation
+    if (!name || !location || !level || !respawn) {
+        alert("Please fill in all fields");
+        return;
+    }
+
+    // Check if name already exists (in add mode)
+    if (!editingBossName && bosses.some(b => b.name === name)) {
+        alert("Boss with this name already exists");
+        return;
+    }
+
+    // Handle image upload
+    if (imageInput.files.length > 0) {
+        const file = imageInput.files[0];
+
+        // Check file size (4MB max)
+        if (file.size > 4 * 1024 * 1024) {
+            imageError.textContent = LANG[currentLang].image_size_error;
+            imageError.classList.add("show");
+            return;
+        }
+
+        // Convert to base64
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const imageData = e.target.result;
+            await submitBoss(name, location, level, respawn, imageData);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        submitBoss(name, location, level, respawn, null);
+    }
+}
+
+async function submitBoss(name, location, level, respawn, imageData) {
+    try {
+        const payload = {
+            name,
+            location,
+            level,
+            respawn,
+            imageData,
+            editingBossName
+        };
+
+        const res = await fetch("/api/manageBoss", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            alert(`Error: ${errorData.error}`);
+            return;
+        }
+
+        // Reload bosses from server
+        await loadBossStatusFromDB();
+        closeBossModal();
+    } catch (err) {
+        console.error("Failed to save boss:", err);
+        alert("Failed to save boss");
+    }
+}
+
+async function deleteBoss() {
+    if (!editingBossName) return;
+
+    if (!confirm(`Delete boss "${editingBossName}"?`)) return;
+
+    try {
+        const res = await fetch("/api/manageBoss", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bossName: editingBossName })
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            alert(`Error: ${errorData.error}`);
+            return;
+        }
+
+        // Reload bosses from server
+        await loadBossStatusFromDB();
+        closeBossModal();
+    } catch (err) {
+        console.error("Failed to delete boss:", err);
+        alert("Failed to delete boss");
+    }
+}
+
+// Image preview
+document.addEventListener("DOMContentLoaded", () => {
+    const imageInput = document.getElementById("bossImage");
+    if (imageInput) {
+        imageInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const preview = document.getElementById("imagePreview");
+                    preview.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+async function deleteFromCard(bossName) {
+    try {
+        const res = await fetch("/api/manageBoss", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bossName })
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            alert(`Error: ${errorData.error}`);
+            return;
+        }
+
+        await loadBossStatusFromDB();
+    } catch (err) {
+        console.error("Failed to delete boss:", err);
+        alert("Failed to delete boss");
+    }
+}    

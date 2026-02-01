@@ -44,6 +44,48 @@
     </div>
 </div>
 
+<!-- Boss Management Modal -->
+<div id="boss-modal" class="boss-modal hidden">
+    <div class="boss-modal-content">
+        <h2 id="boss-modal-title" class="boss-modal-title">Add New Boss</h2>
+        
+        <form id="bossForm" class="boss-form">
+            <div class="form-group">
+                <label>Name:</label>
+                <input type="text" id="bossName" placeholder="Boss name" required>
+            </div>
+
+            <div class="form-group">
+                <label>Location:</label>
+                <input type="text" id="bossLocation" placeholder="Location" required>
+            </div>
+
+            <div class="form-group">
+                <label>Level:</label>
+                <input type="number" id="bossLevel" placeholder="Level" required>
+            </div>
+
+            <div class="form-group">
+                <label>Respawn Time:</label>
+                <input type="text" id="bossRespawn" placeholder="e.g. 24 Hour or Monday 12:00, Friday 18:00" required>
+            </div>
+
+            <div class="form-group">
+                <label>Image (Max 4MB):</label>
+                <input type="file" id="bossImage" accept="image/*">
+                <div id="imagePreview" class="image-preview"></div>
+                <div id="imageError" class="form-error"></div>
+            </div>
+        </form>
+
+        <div class="boss-modal-buttons">
+            <button class="btn btn-cancel" onclick="closeBossModal()">Cancel</button>
+            <button class="btn btn-save" id="deleteBossBtn" style="display:none; background: #ff4d4d;" onclick="deleteBoss()">Delete</button>
+            <button class="btn btn-primary" onclick="saveBoss()">Save</button>
+        </div>
+    </div>
+</div>
+
 
 <body>
 
@@ -68,6 +110,7 @@
         <option value="level">Sort: Level</option>
         <option value="respawn">Sort: Respawn Time</option>
     </select>
+    <button class="btn add-boss-btn" onclick="openBossModal()">Add Boss</button>
 </div>
 
 

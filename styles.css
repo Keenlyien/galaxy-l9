@@ -130,6 +130,10 @@ body {
 /* SORTING SELECTOR  */
 .sort-container {
     margin-top: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
 }
 
 #sortSelect {
@@ -143,6 +147,21 @@ body {
 #sortSelect:hover {
     background: #222;
     border-color: #666;
+}
+
+.add-boss-btn {
+    padding: 6px 14px;
+    background: #3a7afe;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.add-boss-btn:hover {
+    background: #5a90ff;
 }
 
 
@@ -244,7 +263,8 @@ body {
 /* ==== BUTTONS ==== */
 .btn-row {
     margin-top: 20px;
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 10px;
 }
 
@@ -271,6 +291,30 @@ body {
 .unkill-btn:hover {
     transform: scale(1.15);
     box-shadow: 0 8px 25px rgba(100, 100, 100, 0.6);
+}
+
+.edit-btn {
+    background: #3a7afe;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+    transform-origin: center;
+    box-shadow: 0 4px 12px rgba(58, 122, 254, 0.3);
+}
+
+.edit-btn:hover {
+    transform: scale(1.15);
+    box-shadow: 0 8px 25px rgba(58, 122, 254, 0.6);
+}
+
+.delete-btn {
+    background: #ff8c42;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+    transform-origin: center;
+    box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
+}
+
+.delete-btn:hover {
+    transform: scale(1.15);
+    box-shadow: 0 8px 25px rgba(255, 140, 66, 0.6);
 }
 
 /* ==== DATETIME BUTTON SYSTEM ==== */
@@ -561,5 +605,150 @@ body {
 
 .overlay.active {
     display: block;
+}
+
+/* ==== BOSS MANAGEMENT MODAL ==== */
+
+.boss-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2100;
+}
+
+.boss-modal.hidden {
+    display: none;
+}
+
+.boss-modal-content {
+    background: #1b1b1f;
+    width: 90%;
+    max-width: 500px;
+    padding: 30px;
+    border-radius: 14px;
+    color: #fff;
+    box-shadow: 0 0 30px rgba(0,0,0,0.6);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.boss-modal-title {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 22px;
+    color: #3a7afe;
+}
+
+.boss-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: bold;
+    opacity: 0.9;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="file"] {
+    padding: 10px;
+    background: #2a2a2e;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group input[type="file"]:focus {
+    outline: none;
+    border-color: #3a7afe;
+    background: #2d2d31;
+}
+
+.image-preview {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.form-error {
+    color: #ff6b6b;
+    font-size: 12px;
+    margin-top: 5px;
+    display: none;
+}
+
+.form-error.show {
+    display: block;
+}
+
+.boss-modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: space-between;
+}
+
+.btn-cancel {
+    background: #444;
+    color: white;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    flex: 1;
+}
+
+.btn-cancel:hover {
+    background: #555;
+}
+
+.btn-primary {
+    background: #3a7afe;
+    color: white;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    flex: 1;
+}
+
+.btn-primary:hover {
+    background: #5a90ff;
+}
+
+.btn-save {
+    background: #ff4d4d;
+    color: white;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
 }
 
