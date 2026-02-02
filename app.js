@@ -832,6 +832,7 @@ async function deleteBossFromModal() {
 // ============================================
 let editingBossIndex = null;
 let scheduledTimes = [];
+let respawnEditorOriginal = null;
 
 function showBossModal(show) {
     const modal = document.getElementById("boss-modal");
@@ -1043,49 +1044,9 @@ function renderRespawnEditorModal() {
 function updateScheduledSummary() {
     const summary = document.getElementById("scheduled-summary");
     if (!summary) return;
-    
+    // Always show a simple pill summary. Editing happens in the editor modal.
     if (scheduledTimes.length === 0) {
-        summary.innerHTML = `
-            <div class="scheduled-inline">
-                <div class="duration-input">
-                    <label style="font-size:12px;color:#bbb;margin-bottom:6px;display:block">Day</label>
-                    <select id="scheduled-day-input">
-                        <option>Monday</option>
-                        <option>Tuesday</option>
-                        <option>Wednesday</option>
-                        <option>Thursday</option>
-                        <option>Friday</option>
-                        <option>Saturday</option>
-                        <option>Sunday</option>
-                    </select>
-                </div>
-                <div class="duration-input">
-                    <label style="font-size:12px;color:#bbb;margin-bottom:6px;display:block">Hour</label>
-                    <input id="scheduled-hour-input" type="number" min="0" max="23" value="12">
-                </div>
-                <div class="duration-input">
-                    <label style="font-size:12px;color:#bbb;margin-bottom:6px;display:block">Minute</label>
-                    <input id="scheduled-minute-input" type="number" min="0" max="59" value="0">
-                </div>
-                <div style="display:flex;align-items:flex-end;">
-                    <button type="button" id="scheduled-add-btn" class="btn">Add</button>
-                </div>
-                <div style="display:flex;align-items:flex-end;">
-                    <div class="rp-pill">No times set</div>
-                </div>
-            </div>
-        `;
-        // wire add button
-        const addBtn = document.getElementById('scheduled-add-btn');
-        if (addBtn) {
-            addBtn.addEventListener('click', () => {
-                const day = document.getElementById('scheduled-day-input').value;
-                const hour = parseInt(document.getElementById('scheduled-hour-input').value, 10) || 0;
-                const minute = parseInt(document.getElementById('scheduled-minute-input').value, 10) || 0;
-                scheduledTimes.push({ day, hour, minute });
-                updateScheduledSummary();
-            });
-        }
+        summary.innerHTML = `<div class="rp-pill">No times set</div>`;
     } else {
         summary.innerHTML = `<div class="rp-pill">` + scheduledTimes
             .map(t => `${t.day} ${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`)
@@ -1114,6 +1075,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const editScheduledBtn = document.getElementById("edit-scheduled-times");
     if (editScheduledBtn) {
         editScheduledBtn.addEventListener("click", () => {
+            // snapshot current scheduled times to detect unsaved changes
+            respawnEditorOriginal = JSON.stringify(scheduledTimes || []);
             renderRespawnEditorModal();
             showRespawnEditorModal(true);
         });
@@ -1122,6 +1085,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const addRespawnTimeBtn = document.getElementById("add-respawn-time");
     if (addRespawnTimeBtn) {
         addRespawnTimeBtn.addEventListener("click", () => {
+            if (scheduledTimes.length >= 3) {
+                alert('Maximum of 3 scheduled times allowed');
+                return;
+            }
             scheduledTimes.push({ day: "Monday", hour: 12, minute: 0 });
             renderRespawnEditorModal();
         });
@@ -1130,7 +1097,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const respawnSaveBtn = document.getElementById("respawn-save");
     if (respawnSaveBtn) {
         respawnSaveBtn.addEventListener("click", () => {
+            if (scheduledTimes.length === 0) {
+                alert('Please add at least one scheduled time');
+                return;
+            }
+            if (scheduledTimes.length > 3) {
+                alert('Maximum of 3 scheduled times allowed');
+                return;
+            }
+            if (!confirm('Save scheduled times?')) return;
             updateScheduledSummary();
+            respawnEditorOriginal = null;
             showRespawnEditorModal(false);
         });
     }
@@ -1138,6 +1115,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const respawnCancelBtn = document.getElementById("respawn-cancel");
     if (respawnCancelBtn) {
         respawnCancelBtn.addEventListener("click", () => {
+            const current = JSON.stringify(scheduledTimes || []);
+            if (respawnEditorOriginal && current !== respawnEditorOriginal) {
+                if (!confirm('You have unsaved changes. Discard?')) return;
+                // revert changes
+                scheduledTimes = JSON.parse(respawnEditorOriginal);
+            }
+            respawnEditorOriginal = null;
             showRespawnEditorModal(false);
         });
     }

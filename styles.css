@@ -143,13 +143,15 @@ body {
 
 /* SORTING SELECTOR  */
 .sort-container {
-    /* place sort + Add Boss inside the header to match reference layout */
-    position: absolute;
-    right: 40px;
-    top: 50%;
-    transform: translateY(-50%);
     display: flex;
     gap: 12px;
+    align-items: center;
+    margin: 12px 40px;
+}
+
+.top-controls {
+    display: flex;
+    justify-content: flex-end;
     align-items: center;
 }
 
@@ -854,14 +856,14 @@ select option {
     color: #fff;
 }
 
-/* position Edit button top-right inside the respawn section */
+/* Edit button for scheduled times — inline and non-overlapping */
 #edit-scheduled-times {
     z-index: 30;
-    position: absolute;
-    top: 8px;
-    right: 8px;
+    position: static;
+    margin-left: 12px;
     padding: 6px 10px;
     font-size: 12px;
+    align-self: flex-start;
 }
 
 /* make sure scheduled summary doesn't overflow modal */
