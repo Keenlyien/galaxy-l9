@@ -5,192 +5,148 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 
+<body>
+
 <!-- Date/Time Modal -->
 <div id="dt-modal" class="dt-modal hidden">
     <div class="dt-modal-content">
-
         <h2 class="dt-title">Select Date & Time</h2>
-
-        <!-- Calendar Header -->
         <div class="dt-cal-header">
             <button id="dt-prev-month" class="dt-nav-btn">◀</button>
             <span id="dt-month-label"></span>
             <button id="dt-next-month" class="dt-nav-btn">▶</button>
         </div>
-
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Boss Tracker Dashboard</title>
-            <link rel="stylesheet" href="styles.css">
-        </head>
-
-        <!-- Date/Time Modal -->
-        <div id="dt-modal" class="dt-modal hidden">
-            <div class="dt-modal-content">
-
-                <h2 class="dt-title">Select Date & Time</h2>
-
-                <!-- Calendar Header -->
-                <div class="dt-cal-header">
-                    <button id="dt-prev-month" class="dt-nav-btn">◀</button>
-                    <span id="dt-month-label"></span>
-                    <button id="dt-next-month" class="dt-nav-btn">▶</button>
-                </div>
-
-                <!-- Calendar Grid -->
-                <div class="dt-calendar">
-                    <div class="dt-weekdays">
-                        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
-                        <span>Thu</span><span>Fri</span><span>Sat</span>
-                    </div>
-                    <div id="dt-days" class="dt-days"></div>
-                </div>
-
-                <!-- Time Picker -->
-                <div class="dt-time-section">
-                    <label>Time:</label>
-                    <select id="dt-hour"></select>
-                    :
-                    <select id="dt-minute"></select>
-                </div>
-
-                <!-- Buttons -->
-                <div class="dt-modal-buttons">
-                    <button class="dt-cancel" onclick="closeDTModal()">Cancel</button>
-                    <button class="dt-confirm" onclick="confirmDTSelection()">Confirm</button>
-                </div>
-
+        <div class="dt-calendar">
+            <div class="dt-weekdays">
+                <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
+                <span>Thu</span><span>Fri</span><span>Sat</span>
             </div>
+            <div id="dt-days" class="dt-days"></div>
         </div>
-
-
-        <body>
-
-        <div class="header">
-            <h1 class="header-title">L9 Galaxy Field Boss Schedule</h1>
-            <button class="btn logout-btn" onclick="logout()">Logout</button>
-            <select id="lang-select" onchange="setLanguage(this.value)">
-            <option value="en">English</option>
-            <option value="th">ไทย</option>
-        </select>
-        <select id="tz-select" onchange="setTimezone(this.value)">
-            <option value="8">UTC +8</option>
-            <option value="7">UTC +7</option>
-        </select>
-
+        <div class="dt-time-section">
+            <label>Time:</label>
+            <select id="dt-hour"></select> : <select id="dt-minute"></select>
         </div>
-
-        <!-- top controls moved out of header to avoid overlapping -->
-        <div class="top-controls">
-          <div class="sort-container">
-            <select id="sortSelect">
-              <option value="default">Sort: Default</option>
-              <option value="level">Sort: Level</option>
-              <option value="respawn">Sort: Respawn Time</option>
-            </select>
-            <button id="addBossBtn" class="btn">Add Boss</button>
-          </div>
+        <div class="dt-modal-buttons">
+            <button class="dt-cancel" onclick="closeDTModal()">Cancel</button>
+            <button class="dt-confirm" onclick="confirmDTSelection()">Confirm</button>
         </div>
+    </div>
+</div>
 
-        <div id="boss-container" class="boss-container"></div>
+<div class="header">
+    <h1 class="header-title">L9 Galaxy Field Boss Schedule</h1>
+    <button class="btn logout-btn" onclick="logout()">Logout</button>
+    <select id="lang-select" onchange="setLanguage(this.value)">
+        <option value="en">English</option>
+        <option value="th">ไทย</option>
+    </select>
+    <select id="tz-select" onchange="setTimezone(this.value)">
+        <option value="8">UTC +8</option>
+        <option value="7">UTC +7</option>
+    </select>
+</div>
 
-        <!-- Add/Edit Boss Modal -->
-        <div id="boss-modal" class="modal hidden">
-            <div class="modal-content">
-                <h2 id="boss-modal-title">Add Boss</h2>
-                <form id="boss-form">
-              <label>Name *</label>
-              <input type="text" id="boss-name" required>
-      
-              <label>Location *</label>
-              <input type="text" id="boss-location" required>
-      
-              <label>Level *</label>
-              <input type="number" id="boss-level" min="0" required>
-      
-              <label>Schedule Type *</label>
-              <select id="boss-schedule-type" required>
+<!-- top controls moved out of header to avoid overlapping -->
+<div class="top-controls">
+  <div class="sort-container">
+    <select id="sortSelect">
+      <option value="default">Sort: Default</option>
+      <option value="level">Sort: Level</option>
+      <option value="respawn">Sort: Respawn Time</option>
+    </select>
+    <button id="addBossBtn" class="btn">Add Boss</button>
+  </div>
+</div>
+
+<div id="boss-container" class="boss-container"></div>
+
+<!-- Add/Edit Boss Modal -->
+<div id="boss-modal" class="modal hidden">
+    <div class="modal-content">
+        <h2 id="boss-modal-title">Add Boss</h2>
+        <form id="boss-form">
+            <label>Name</label>
+            <input type="text" id="boss-name" required>
+            <label>Location</label>
+            <input type="text" id="boss-location" required>
+            <label>Level</label>
+            <input type="number" id="boss-level" min="0" required>
+            <label>Schedule Type</label>
+            <select id="boss-schedule-type" required>
                 <option value="">-- Select --</option>
                 <option value="scheduled">Scheduled (Weekly)</option>
                 <option value="unscheduled">Unscheduled (Hourly)</option>
-              </select>
-
-              <!-- Scheduled respawn UI (weekly) -->
-              <label style="margin-top:8px; display:block;">Weekly Respawn Times *</label>
-              <div id="scheduled-respawn" class="respawn-section hidden">
-                <div class="respawn-header-top">
-                  <div class="respawn-summary" id="scheduled-summary">No times set</div>
-                  <button type="button" class="btn-small" id="edit-scheduled-times">Edit</button>
+            </select>
+            <!-- Scheduled respawn UI (weekly) -->
+            <label id="scheduled-label" style="margin-top:8px; display:block;">Weekly Respawn Times</label>
+            <div id="scheduled-respawn" class="respawn-section hidden">
+                <div class="scheduled-times-list" id="scheduled-times-list">
+                    <!-- scheduled rows rendered here -->
                 </div>
-              </div>
+                <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+                    <button id="add-scheduled-time" type="button" class="btn-small">Add</button>
+                    <div style="flex:1"></div>
+                </div>
+            </div>
 
-              <!-- Unscheduled respawn UI (hourly) -->
-              <div id="unscheduled-respawn" class="respawn-section hidden">
-                <label>Respawn Duration *</label>
+            <!-- Unscheduled respawn UI (hourly) -->
+            <label id="unscheduled-label" style="margin-top:8px; display:block; display:none;">Respawn Duration</label>
+            <div id="unscheduled-respawn" class="respawn-section hidden">
                 <div class="duration-picker">
-                  <div class="duration-input">
-                    <label>Days</label>
-                    <input type="number" id="boss-respawn-days" min="0" value="0">
-                  </div>
-                  <div class="duration-input">
-                    <label>Hours</label>
-                    <input type="number" id="boss-respawn-hours" min="0" max="23" value="0">
-                  </div>
-                  <div class="duration-input">
-                    <label>Minutes</label>
-                    <input type="number" id="boss-respawn-minutes" min="0" max="59" value="0">
-                  </div>
+                    <div class="duration-input">
+                        <label>Days</label>
+                        <input type="number" id="boss-respawn-days" min="0" value="0">
+                    </div>
+                    <div class="duration-input">
+                        <label>Hours</label>
+                        <input type="number" id="boss-respawn-hours" min="0" max="23" value="0">
+                    </div>
+                    <div class="duration-input">
+                        <label>Minutes</label>
+                        <input type="number" id="boss-respawn-minutes" min="0" max="59" value="0">
+                    </div>
                 </div>
-              </div>
+            </div>
 
-              <label>Image (optional, max 4MB)</label>
-              <input type="file" id="boss-image" accept="image/*">
-      
-              <div id="boss-form-errors" class="form-errors" style="display:none; margin-top:8px;"></div>
-
-              <div class="modal-buttons">
+            <label>Image (optional, max 4MB)</label>
+            <input type="file" id="boss-image" accept="image/*">
+            <div id="boss-form-errors" class="form-errors" style="display:none; margin-top:8px;"></div>
+            <div id="boss-delete-confirm" style="display:none; margin-top:8px;">
+                <div class="form-errors" id="boss-delete-message">Are you sure you want to delete this boss? This action cannot be undone.</div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button type="button" id="boss-delete-confirm-yes" class="btn danger">Delete</button>
+                    <button type="button" id="boss-delete-confirm-no" class="btn">Cancel</button>
+                </div>
+            </div>
+            <div class="modal-buttons">
                 <button type="button" id="boss-save" class="btn">Save</button>
                 <button type="button" id="boss-cancel" class="btn">Cancel</button>
                 <button type="button" id="boss-delete" class="btn danger" style="display:none;">Delete</button>
-              </div>
-                </form>
             </div>
-        </div>
+        </form>
+    </div>
+</div>
 
-        <!-- Respawn editor modal (weekly schedule editor) -->
-        <div id="respawn-editor-modal" class="modal hidden">
-          <div class="modal-content">
-            <h2>Weekly Respawn Times</h2>
-            <div id="respawn-times-list" class="respawn-times-list" style="max-height:320px; overflow:auto; margin-bottom:12px;"></div>
-            <div style="display:flex; gap:8px; margin-bottom:8px;">
-              <button id="add-respawn-time" type="button" class="btn">Add Time</button>
-              <div style="flex:1"></div>
-              <button id="respawn-save" type="button" class="btn">Save</button>
-              <button id="respawn-cancel" type="button" class="btn">Cancel</button>
-            </div>
-          </div>
-        </div>
+<!-- Respawn editor modal (weekly schedule editor) -->
+<!-- Weekly modal removed per request; scheduled uses duration inputs inline like unscheduled -->
 
-        <!-- Scripts -->
+<!-- Scripts -->
+<script src="lang.js"></script>
+<script src="app.js"></script>
 
-        <script src="lang.js"></script>
-        <script src="app.js"></script>
+<!-- Hamburger Button -->
+<div id="hamburger" class="hamburger">☰</div>
 
+<!-- Sidebar -->
+<div id="sidebar" class="sidebar">
+    <div class="sidebar-header">Menu</div>
+    <a href="dashboard.html">Boss Tracker</a>
+    <a href="participation.html" style="display: none;">Boss Participation</a>
+</div>
 
-        </body>
+<!-- Overlay -->
+<div id="overlay" class="overlay"></div>
 
-        <!-- Hamburger Button -->
-        <div id="hamburger" class="hamburger">☰</div>
-
-        <!-- Sidebar -->
-        <div id="sidebar" class="sidebar">
-            <div class="sidebar-header">Menu</div>
-            <a href="dashboard.html">Boss Tracker</a>
-            <a href="participation.html" style="display: none;">Boss Participation</a>
-        </div>
-
-        <!-- Overlay -->
-        <div id="overlay" class="overlay"></div>
-
-        </html>
+</body>
+</html>

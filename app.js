@@ -163,6 +163,21 @@ function weekdayToIndex(day) {
     return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].indexOf(day);
 }
 
+function dayToName(val) {
+    const names = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    if (val == null) return null;
+    if (typeof val === 'number') return names[val] || null;
+    if (typeof val === 'string') {
+        // If string looks like a number, convert
+        if (/^\d+$/.test(val)) {
+            const n = parseInt(val,10);
+            return names[n] || val;
+        }
+        return val;
+    }
+    return String(val);
+}
+
 function getNextWeeklySpawn(schedule) {
     const now = new Date();
 
@@ -691,8 +706,28 @@ async function saveBossFromModal() {
     // Build respawn string based on schedule type
     let respawn = "";
     if (scheduleType === "scheduled") {
-        if (scheduledTimes.length === 0) errors.push("Please add at least one scheduled time");
-        respawn = scheduledTimes.map(t => `${t.day} ${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`).join(", ");
+        // If user configured explicit weekly times, use those (e.g., "Monday 12:00, Tuesday 13:00")
+        if (scheduledTimes && scheduledTimes.length > 0) {
+            // Validate scheduled rows
+            if (!validateScheduledTimes()) {
+                showFormErrors(["Please fix scheduled times before saving."]);
+                return;
+            }
+            respawn = scheduledTimes.map(t => {
+                const day = t.day || t.weekday || 'Monday';
+                const hh = String(typeof t.hour === 'number' ? t.hour : (parseInt(t.hour,10)||0)).padStart(2,'0');
+                const mm = String(typeof t.minute === 'number' ? t.minute : (parseInt(t.minute,10)||0)).padStart(2,'0');
+                return `${day} ${hh}:${mm}`;
+            }).join(', ');
+        } else {
+            // Fallback to duration inputs if no weekly rows present
+            const days = parseInt(document.getElementById("boss-respawn-days").value, 10) || 0;
+            const hours = parseInt(document.getElementById("boss-respawn-hours").value, 10) || 0;
+            const minutes = parseInt(document.getElementById("boss-respawn-minutes").value, 10) || 0;
+            const totalHours = days * 24 + hours;
+            if (totalHours === 0 && minutes === 0) errors.push("Respawn duration must be greater than 0");
+            respawn = `${totalHours} Hour${minutes > 0 ? ` ${minutes} Minute` : ""}`;
+        }
     } else if (scheduleType === "unscheduled") {
         const days = parseInt(document.getElementById("boss-respawn-days").value, 10) || 0;
         const hours = parseInt(document.getElementById("boss-respawn-hours").value, 10) || 0;
@@ -769,7 +804,6 @@ function clearFormErrors() {
 async function deleteBossFromModal() {
     if (editingBossIndex === null) return;
     const boss = bosses[editingBossIndex];
-    if (!confirm(`Delete boss ${boss.name}? This cannot be undone.`)) return;
     try {
         const res = await fetch("/api/manageBoss", {
             method: "DELETE",
@@ -782,7 +816,10 @@ async function deleteBossFromModal() {
         showBossModal(false);
     } catch (err) {
         console.error("Failed to delete boss:", err);
-        alert("Failed to delete boss: " + err.message);
+        showFormErrors(["Failed to delete boss: " + err.message]);
+    } finally {
+        const conf = document.getElementById('boss-delete-confirm');
+        if (conf) conf.style.display = 'none';
     }
 }
 
@@ -790,30 +827,88 @@ async function deleteBossFromModal() {
 // ============================================
 let editingBossIndex = null;
 let scheduledTimes = [];
-let respawnEditorOriginal = null;
 
 function showBossModal(show) {
     const modal = document.getElementById("boss-modal");
     if (!modal) return;
     if (show) modal.classList.remove("hidden");
     else modal.classList.add("hidden");
+    if (show) {
+        // Ensure respawn UI labels reflect current values whenever modal opens
+        try { toggleRespawnUI(); } catch (e) { /* ignore */ }
+    }
 }
 
 function toggleRespawnUI() {
     const scheduleType = document.getElementById("boss-schedule-type").value;
     const scheduledDiv = document.getElementById("scheduled-respawn");
     const unscheduledDiv = document.getElementById("unscheduled-respawn");
+    const scheduledLabel = document.getElementById("scheduled-label");
+    const unscheduledLabel = document.getElementById("unscheduled-label");
     
     if (scheduleType === "scheduled") {
+        // Show weekly scheduled controls, hide duration inputs
         scheduledDiv?.classList.remove("hidden");
         unscheduledDiv?.classList.add("hidden");
-        updateScheduledSummary();
+        if (scheduledLabel) scheduledLabel.style.display = 'block';
+        if (unscheduledLabel) unscheduledLabel.style.display = 'none';
     } else if (scheduleType === "unscheduled") {
+        // Unscheduled uses duration inputs
         scheduledDiv?.classList.add("hidden");
         unscheduledDiv?.classList.remove("hidden");
+        if (scheduledLabel) scheduledLabel.style.display = 'none';
+        if (unscheduledLabel) unscheduledLabel.style.display = 'block';
     } else {
         scheduledDiv?.classList.add("hidden");
         unscheduledDiv?.classList.add("hidden");
+        if (scheduledLabel) scheduledLabel.style.display = 'none';
+        if (unscheduledLabel) unscheduledLabel.style.display = 'none';
+    }
+}
+
+// Render inline scheduled rows (day select + hour/min inputs)
+function renderScheduledInline() {
+    const container = document.getElementById('scheduled-times-list');
+    if (!container) return;
+    container.innerHTML = '';
+    scheduledTimes.forEach((t, idx) => {
+        const row = document.createElement('div');
+        row.className = 'scheduled-time-item';
+
+        const daySel = document.createElement('select');
+        daySel.className = 'day-select';
+        ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].forEach(d => {
+            const opt = document.createElement('option'); opt.value = d; opt.textContent = d;
+            const currentDay = dayToName(t.day || t.weekday);
+            if (currentDay === d) opt.selected = true;
+            daySel.appendChild(opt);
+        });
+        daySel.addEventListener('change', e => { scheduledTimes[idx].day = e.target.value; });
+
+        const hourIn = document.createElement('input');
+        hourIn.type = 'number'; hourIn.min = 0; hourIn.max = 23; hourIn.className = 'hour-input';
+        hourIn.value = (t.hour == null ? '' : t.hour);
+        hourIn.addEventListener('change', e => { const v = e.target.value; scheduledTimes[idx].hour = v === '' ? null : Math.max(0, Math.min(23, parseInt(v,10)||0)); });
+
+        const minuteIn = document.createElement('input');
+        minuteIn.type = 'number'; minuteIn.min = 0; minuteIn.max = 59; minuteIn.className = 'minute-input';
+        minuteIn.value = (t.minute == null ? '' : t.minute);
+        minuteIn.addEventListener('change', e => { const v = e.target.value; scheduledTimes[idx].minute = v === '' ? null : Math.max(0, Math.min(59, parseInt(v,10)||0)); });
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button'; removeBtn.className = 'remove-scheduled'; removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', () => { scheduledTimes.splice(idx,1); renderScheduledInline(); });
+
+        row.appendChild(daySel);
+        row.appendChild(hourIn);
+        row.appendChild(minuteIn);
+        row.appendChild(removeBtn);
+        container.appendChild(row);
+    });
+
+    // If no rows, show an empty placeholder
+    if (scheduledTimes.length === 0) {
+        const ph = document.createElement('div'); ph.className = 'rp-pill'; ph.textContent = 'No times set'; container.appendChild(ph);
     }
 }
 
@@ -856,7 +951,7 @@ function removeScheduledTime(idx) {
 
 function addScheduledTime() {
     scheduledTimes.push({ day: "Monday", hour: 12, minute: 0 });
-    renderScheduledTimesList();
+    renderScheduledInline();
 }
 
 function openEditBoss(i) {
@@ -900,6 +995,7 @@ function openEditBoss(i) {
     }
     
     toggleRespawnUI();
+    renderScheduledInline();
     showBossModal(true);
 }
 
@@ -919,6 +1015,7 @@ function openAddBoss() {
     
     scheduledTimes = [];
     toggleRespawnUI();
+    renderScheduledInline();
     showBossModal(true);
 }
 
@@ -948,6 +1045,14 @@ function renderRespawnEditorModal() {
         const item = document.createElement("div");
         item.className = "respawn-time-item";
         
+        // Day field wrapper
+        const dayWrapper = document.createElement('div');
+        dayWrapper.className = 'field-wrapper';
+
+        const dayLabel = document.createElement('div');
+        dayLabel.className = 'field-label';
+        dayLabel.textContent = 'Day';
+
         const daySelect = document.createElement("select");
         ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach(day => {
             const opt = document.createElement("option");
@@ -960,26 +1065,71 @@ function renderRespawnEditorModal() {
             scheduledTimes[idx].day = e.target.value;
         });
         
+        const hourWrapper = document.createElement('div');
+        hourWrapper.className = 'field-wrapper field-wrapper-small';
+
+        const hourLabel = document.createElement('div');
+        hourLabel.className = 'field-label';
+        hourLabel.textContent = 'Hour';
+
         const hourInput = document.createElement("input");
         hourInput.type = "number";
         hourInput.min = "0";
         hourInput.max = "23";
         hourInput.value = time.hour;
         hourInput.placeholder = "HH";
+        hourInput.dataset.idx = idx;
+        hourInput.dataset.field = 'hour';
         hourInput.addEventListener("change", (e) => {
-            scheduledTimes[idx].hour = Math.max(0, Math.min(23, parseInt(e.target.value, 10) || 0));
-            hourInput.value = scheduledTimes[idx].hour;
+            const raw = e.target.value;
+            if (raw === "") {
+                // empty -> required
+                scheduledTimes[idx].hour = null;
+                showFieldError(idx, 'hour', 'This is a required field.');
+            } else {
+                const v = parseInt(raw, 10);
+                if (isNaN(v) || v < 0 || v > 23) {
+                    showFieldError(idx, 'hour', 'Hour must be 0–23');
+                    scheduledTimes[idx].hour = Math.max(0, Math.min(23, v || 0));
+                } else {
+                    clearFieldError(idx, 'hour');
+                    scheduledTimes[idx].hour = v;
+                }
+            }
+            hourInput.value = scheduledTimes[idx].hour == null ? "" : scheduledTimes[idx].hour;
         });
         
+        const minuteWrapper = document.createElement('div');
+        minuteWrapper.className = 'field-wrapper field-wrapper-small';
+
+        const minuteLabel = document.createElement('div');
+        minuteLabel.className = 'field-label';
+        minuteLabel.textContent = 'Minute';
+
         const minuteInput = document.createElement("input");
         minuteInput.type = "number";
         minuteInput.min = "0";
         minuteInput.max = "59";
         minuteInput.value = time.minute;
         minuteInput.placeholder = "MM";
+        minuteInput.dataset.idx = idx;
+        minuteInput.dataset.field = 'minute';
         minuteInput.addEventListener("change", (e) => {
-            scheduledTimes[idx].minute = Math.max(0, Math.min(59, parseInt(e.target.value, 10) || 0));
-            minuteInput.value = scheduledTimes[idx].minute;
+            const raw = e.target.value;
+            if (raw === "") {
+                scheduledTimes[idx].minute = null;
+                showFieldError(idx, 'minute', 'This is a required field.');
+            } else {
+                const v = parseInt(raw, 10);
+                if (isNaN(v) || v < 0 || v > 59) {
+                    showFieldError(idx, 'minute', 'Minute must be 0–59');
+                    scheduledTimes[idx].minute = Math.max(0, Math.min(59, v || 0));
+                } else {
+                    clearFieldError(idx, 'minute');
+                    scheduledTimes[idx].minute = v;
+                }
+            }
+            minuteInput.value = scheduledTimes[idx].minute == null ? "" : scheduledTimes[idx].minute;
         });
         
         const removeBtn = document.createElement("button");
@@ -990,25 +1140,144 @@ function renderRespawnEditorModal() {
             scheduledTimes.splice(idx, 1);
             renderRespawnEditorModal();
         });
-        
-        item.appendChild(daySelect);
-        item.appendChild(hourInput);
-        item.appendChild(minuteInput);
+        // assemble wrappers: day, hour, minute
+        const dayErr = document.createElement('div');
+        dayErr.className = 'field-error-message';
+        dayErr.id = `err-${idx}-day`;
+        dayErr.style.display = 'none';
+
+        const hourErr = document.createElement('div');
+        hourErr.className = 'field-error-message';
+        hourErr.id = `err-${idx}-hour`;
+        hourErr.style.display = 'none';
+
+        const minuteErr = document.createElement('div');
+        minuteErr.className = 'field-error-message';
+        minuteErr.id = `err-${idx}-minute`;
+        minuteErr.style.display = 'none';
+
+        dayWrapper.appendChild(dayLabel);
+        dayWrapper.appendChild(daySelect);
+        dayWrapper.appendChild(dayErr);
+
+        hourWrapper.appendChild(hourLabel);
+        hourWrapper.appendChild(hourInput);
+        hourWrapper.appendChild(hourErr);
+
+        minuteWrapper.appendChild(minuteLabel);
+        minuteWrapper.appendChild(minuteInput);
+        minuteWrapper.appendChild(minuteErr);
+
+        item.appendChild(dayWrapper);
+        item.appendChild(hourWrapper);
+        item.appendChild(minuteWrapper);
         item.appendChild(removeBtn);
         list.appendChild(item);
     });
 }
 
+function showFieldError(idx, field, msg) {
+    const id = `err-${idx}-${field}`;
+    const el = document.getElementById(id);
+    if (el) {
+        el.textContent = msg || 'This is a required field.';
+        el.style.display = 'block';
+        // add error class to input/select
+        const container = el.parentElement;
+        const inputs = container.querySelectorAll('input, select');
+        inputs.forEach(i => {
+            if (i.dataset && i.dataset.field === field) i.classList.add('field-error');
+        });
+    }
+}
+
+function clearFieldError(idx, field) {
+    const id = `err-${idx}-${field}`;
+    const el = document.getElementById(id);
+    if (el) {
+        el.textContent = '';
+        el.style.display = 'none';
+        const container = el.parentElement;
+        const inputs = container.querySelectorAll('input, select');
+        inputs.forEach(i => {
+            if (i.dataset && i.dataset.field === field) i.classList.remove('field-error');
+        });
+    }
+}
+
+function validateScheduledTimes() {
+    // returns true if valid; shows field errors
+    let ok = true;
+    scheduledTimes.forEach((t, idx) => {
+        if (t.hour === null || t.hour === undefined) {
+            showFieldError(idx, 'hour', 'This is a required field.');
+            ok = false;
+        } else if (typeof t.hour !== 'number' || t.hour < 0 || t.hour > 23) {
+            showFieldError(idx, 'hour', 'Hour must be 0–23');
+            ok = false;
+        } else clearFieldError(idx, 'hour');
+
+        if (t.minute === null || t.minute === undefined) {
+            showFieldError(idx, 'minute', 'This is a required field.');
+            ok = false;
+        } else if (typeof t.minute !== 'number' || t.minute < 0 || t.minute > 59) {
+            showFieldError(idx, 'minute', 'Minute must be 0–59');
+            ok = false;
+        } else clearFieldError(idx, 'minute');
+    });
+    return ok;
+}
+
+function showRespawnEditorError(msg) {
+    const el = document.getElementById('respawn-editor-errors');
+    if (!el) return;
+    if (!msg) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    el.innerHTML = `<div>${msg}</div>`;
+    el.style.display = 'block';
+}
+
+function clearRespawnEditorError() {
+    showRespawnEditorError('');
+}
+
 function updateScheduledSummary() {
     const summary = document.getElementById("scheduled-summary");
     if (!summary) return;
-    // Always show a simple pill summary. Editing happens in the editor modal.
+    // Render active scheduled times inline similar to the sample UI.
     if (scheduledTimes.length === 0) {
         summary.innerHTML = `<div class="rp-pill">No times set</div>`;
     } else {
-        summary.innerHTML = `<div class="rp-pill">` + scheduledTimes
-            .map(t => `${t.day} ${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`)
-            .join(", ") + `</div>`;
+        // show first time inline box (matches sample). Additional times shown in modal editor.
+        const t = scheduledTimes[0];
+        const hour = t.hour == null ? '' : String(t.hour).padStart(2, '0');
+        const minute = t.minute == null ? '' : String(t.minute).padStart(2, '0');
+        const displayDay = dayToName(t.day || t.weekday) || '';
+        summary.innerHTML = `
+            <div class="scheduled-summary-box">
+                <div class="scheduled-header-row">
+                    <div class="scheduled-header day-header">Day</div>
+                    <div class="scheduled-header hour-header">Hours</div>
+                    <div class="scheduled-header minute-header">Minutes</div>
+                    <div class="scheduled-header edit-header"></div>
+                </div>
+                <div class="scheduled-row">
+                    <div class="scheduled-col day-col"><div class="scheduled-pill">${displayDay}</div></div>
+                    <div class="scheduled-col hour-col"><div class="scheduled-pill">${hour}</div></div>
+                    <div class="scheduled-col minute-col"><div class="scheduled-pill">${minute}</div></div>
+                    <div class="scheduled-col"><button id="inline-edit-scheduled" class="scheduled-edit-btn">Edit</button></div>
+                </div>
+            </div>
+        `;
+
+        // rebind inline edit button to open editor modal
+        const inlineEdit = document.getElementById('inline-edit-scheduled');
+        if (inlineEdit) {
+            inlineEdit.addEventListener('click', () => {
+                respawnEditorOriginal = JSON.stringify(scheduledTimes || []);
+                renderRespawnEditorModal();
+                showRespawnEditorModal(true);
+            });
+        }
     }
 }
 
@@ -1024,7 +1293,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (cancelBtn) cancelBtn.addEventListener("click", () => showBossModal(false));
 
     const delBtn = document.getElementById("boss-delete");
-    if (delBtn) delBtn.addEventListener("click", deleteBossFromModal);
+    if (delBtn) {
+        delBtn.addEventListener("click", () => {
+            // show inline confirmation area
+            const conf = document.getElementById('boss-delete-confirm');
+            if (conf) conf.style.display = 'block';
+        });
+    }
 
     const scheduleTypeSelect = document.getElementById("boss-schedule-type");
     if (scheduleTypeSelect) scheduleTypeSelect.addEventListener("change", toggleRespawnUI);
@@ -1043,8 +1318,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const addRespawnTimeBtn = document.getElementById("add-respawn-time");
     if (addRespawnTimeBtn) {
         addRespawnTimeBtn.addEventListener("click", () => {
+            clearRespawnEditorError();
             if (scheduledTimes.length >= 3) {
-                alert('Maximum of 3 scheduled times allowed');
+                showRespawnEditorError('Maximum of 3 scheduled times allowed');
                 return;
             }
             scheduledTimes.push({ day: "Monday", hour: 12, minute: 0 });
@@ -1055,15 +1331,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const respawnSaveBtn = document.getElementById("respawn-save");
     if (respawnSaveBtn) {
         respawnSaveBtn.addEventListener("click", () => {
+            clearRespawnEditorError();
             if (scheduledTimes.length === 0) {
-                alert('Please add at least one scheduled time');
+                showRespawnEditorError('Please add at least one scheduled time');
                 return;
             }
             if (scheduledTimes.length > 3) {
-                alert('Maximum of 3 scheduled times allowed');
+                showRespawnEditorError('Maximum of 3 scheduled times allowed');
                 return;
             }
-            if (!confirm('Save scheduled times?')) return;
+            // validate per-field values and save
+            if (!validateScheduledTimes()) {
+                showRespawnEditorError('Please fix the highlighted fields');
+                return;
+            }
             updateScheduledSummary();
             respawnEditorOriginal = null;
             showRespawnEditorModal(false);
@@ -1075,13 +1356,34 @@ document.addEventListener("DOMContentLoaded", () => {
         respawnCancelBtn.addEventListener("click", () => {
             const current = JSON.stringify(scheduledTimes || []);
             if (respawnEditorOriginal && current !== respawnEditorOriginal) {
-                if (!confirm('You have unsaved changes. Discard?')) return;
-                // revert changes
-                scheduledTimes = JSON.parse(respawnEditorOriginal);
+                // revert silently to original values
+                scheduledTimes = JSON.parse(respawnEditorOriginal || '[]');
             }
             respawnEditorOriginal = null;
             showRespawnEditorModal(false);
         });
     }
+});
+
+// Wire inline delete confirm buttons
+document.addEventListener('DOMContentLoaded', () => {
+    const yes = document.getElementById('boss-delete-confirm-yes');
+    const no = document.getElementById('boss-delete-confirm-no');
+    if (no) no.addEventListener('click', () => {
+        const conf = document.getElementById('boss-delete-confirm');
+        if (conf) conf.style.display = 'none';
+    });
+    if (yes) yes.addEventListener('click', async () => {
+        // Perform deletion without native confirm
+        await deleteBossFromModal(true);
+    });
+
+    // Wire add scheduled time button in modal to our inline add function
+    const addSched = document.getElementById('add-scheduled-time');
+    if (addSched) addSched.addEventListener('click', () => {
+        if (scheduledTimes.length >= 10) return; // safety cap
+        scheduledTimes.push({ day: 'Monday', hour: 12, minute: 0 });
+        renderScheduledInline();
+    });
 });
 
