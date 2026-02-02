@@ -666,48 +666,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-// -----------------------------
-function showBossModal(show) {
-    const modal = document.getElementById("boss-modal");
-    if (!modal) return;
-    if (show) modal.classList.remove("hidden");
-    else modal.classList.add("hidden");
-}
-
-function openEditBoss(i) {
-    editingBossIndex = i;
-    const boss = bosses[i];
-    document.getElementById("boss-modal-title").textContent = "Edit Boss";
-    document.getElementById("boss-name").value = boss.name || "";
-    document.getElementById("boss-location").value = boss.location || "";
-    document.getElementById("boss-level").value = boss.level || "";
-    document.getElementById("boss-respawn").value = boss.respawn || "";
-    document.getElementById("boss-image").value = null;
-    document.getElementById("boss-delete").style.display = "inline-block";
-    showBossModal(true);
-}
-
-function openAddBoss() {
-    editingBossIndex = null;
-    document.getElementById("boss-modal-title").textContent = "Add Boss";
-    document.getElementById("boss-name").value = "";
-    document.getElementById("boss-location").value = "";
-    document.getElementById("boss-level").value = "";
-    document.getElementById("boss-respawn").value = "";
-    document.getElementById("boss-image").value = null;
-    document.getElementById("boss-delete").style.display = "none";
-    showBossModal(true);
-}
-
-async function readImageFileAsDataURL(file) {
-    return await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = err => reject(err);
-        reader.readAsDataURL(file);
-    });
-}
-
 async function saveBossFromModal() {
     // Validation (collect errors and show inline)
     clearFormErrors();
