@@ -151,11 +151,29 @@ body {
 
 /* ==== LANGUAGE PICKER ==== */
 
-#lang-select {
+.header {
+    background: #18181b;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    border-bottom: 1px solid #27272a;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.header-title {
+    margin: 0;
+}
+
+.logout-btn {
     position: absolute;
-    left: 70px;                   /* moved right to avoid hamburger overlap */
-    top: 39%;
-    transform: translateY(-50%);
+    right: 24px;
+}
+
+#tz-select {
     padding: 8px 12px;
     background: #222328;
     color: #ffffff;
@@ -166,17 +184,12 @@ body {
     outline: none;
     transition: 0.2s;
     appearance: none;
+    width: auto;
 }
 
-/* hover */
-#lang-select:hover {
+#tz-select:hover {
     background: #2d2e34;
     border-color: #666;
-}
-
-/* dropdown arrow fix */
-#lang-select::-ms-expand {
-    display: none;
 }
 
 /* SORTING SELECTOR  */
@@ -865,9 +878,6 @@ select option {
 }
 
 /* Header select sizes to avoid layout breaking */
-#lang-select, #tz-select {
-    width: 120px;
-}
 
 #sortSelect {
     width: 170px;
