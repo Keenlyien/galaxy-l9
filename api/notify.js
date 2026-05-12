@@ -189,9 +189,9 @@ export default async function handler(req, res) {
           if (interval === 0) continue;
 
           const intervalMs = interval * 60 * 1000;
-          // Only send when time remaining is exactly at the interval (within the next minute after reaching that interval)
-          // e.g., for 5 min: trigger when timeUntilRespawn is between 300000ms (5min) and 360000ms (6min)
-          if (timeUntilRespawn >= intervalMs && timeUntilRespawn < intervalMs + 60000) {
+          // Widen window to 90 seconds to account for cron jitter (runs every minute with some delay)
+          // e.g., for 5 min: trigger when timeUntilRespawn is between 300000ms (5min) and 390000ms (6.5min)
+          if (timeUntilRespawn >= intervalMs && timeUntilRespawn < intervalMs + 90000) {
             // Check if we already notified for this specific interval
             const lastNotifiedForInterval = boss[`notified_interval_${interval}`] || 0;
             const cooldownMs = interval * 60 * 1000;
