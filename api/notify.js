@@ -98,15 +98,22 @@ export default async function handler(req, res) {
     const discordSettings = await settingsCollection.findOne({ type: "discord" });
 
     if (!discordSettings?.data?.enabled) {
+      console.log("Notifications disabled in settings");
       return res.status(200).json({ message: "Notifications disabled" });
     }
 
     if (!discordSettings?.data?.webhookUrl) {
+      console.log("No webhook configured");
       return res.status(200).json({ message: "No webhook configured" });
     }
 
-    const { webhookUrl, roleId, notifyIntervals } = discordSettings.data;
-    const { bossName, unkill, killed } = req.body;
+    const { webhookUrl, roleId, notifyIntervals } = discordSettings?.data || {};
+    const { bossName, unkill, killed } = req.body || {};
+    
+    if (!notifyIntervals) {
+      return res.status(200).json({ message: "No intervals configured" });
+    }
+    
     const bosses = await db.collection("bosses").find({}).toArray();
     const now = Date.now();
 
