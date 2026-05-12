@@ -5,11 +5,5 @@
     { "source": "/participation", "destination": "/participation.html" },
     { "source": "/api/:path*", "destination": "/api/:path*" }
   ],
-  "cleanUrls": true,
-  "crons": [
-    {
-      "path": "/api/notify",
-      "schedule": "* * * * *"
-    }
-  ]
+  "cleanUrls": true
 }
