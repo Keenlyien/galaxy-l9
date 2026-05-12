@@ -403,46 +403,65 @@ function parseLocalDateTime(value) {
 ----------------------------- */
 
 async function killBoss(bossName) {
+    console.log("Kill button clicked for:", bossName);
+    
     // Find the boss in the bosses array
     const boss = bosses.find(b => b.name === bossName);
-    if (!boss) return;
-
-    // Find the boss's index in the original array for datetime picker
-    const bossIndex = bosses.indexOf(boss);
-    const input = document.getElementById(`dt_${bossIndex}`);
-    const selected = input && input.value
-        ? parseLocalDateTime(input.value)
-        : Date.now();
-
-    const killTime = Math.min(selected, Date.now());
-
-    // Save local copy (instant UI)
-    localStorage.setItem("boss_kill_" + bossName, String(killTime));
-
-    // UPDATE MONGODB
-    try {
-        await updateBoss(bossName, killTime);
-    } catch (err) {
-        console.error("Failed to update server when killing:", err);
+    if (!boss) {
+        console.error("Boss not found:", bossName);
+        return;
     }
 
-    await loadBossStatusFromDB();
+    // Get kill time - current time
+    const killTime = Date.now();
+    console.log("Setting kill time:", killTime);
+
+    // Save to localStorage immediately
+    localStorage.setItem("boss_kill_" + bossName, String(killTime));
+
+    // Update MongoDB
+    try {
+        const res = await fetch("/api/updateBoss", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bossName: bossName, status: killTime })
+        });
+        
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error("Server error:", res.status, errText);
+        } else {
+            console.log("Server updated successfully");
+        }
+    } catch (err) {
+        console.error("Network error:", err);
+    }
+
+    // Re-render
+    renderBosses();
 }
 
 async function unkillBoss(bossName) {
+    console.log("Unkill button clicked for:", bossName);
+    
     localStorage.removeItem("boss_kill_" + bossName);
 
     try {
-        await fetch("/api/updateBoss", {
+        const res = await fetch("/api/updateBoss", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ bossName: bossName, status: null })
         });
+        
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error("Server error:", res.status, errText);
+        }
     } catch (err) {
-        console.error("Failed to update server when un-killing:", err);
+        console.error("Network error:", err);
     }
 
-    await loadBossStatusFromDB();
+    renderBosses();
 }
 
 
