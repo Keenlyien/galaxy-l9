@@ -86,6 +86,11 @@ async function sendDiscordMessage(webhookUrl, content, title, color) {
 export default async function handler(req, res) {
   try {
     console.log("Notify API called", req.method, req.body);
+
+    // Allow both GET and POST for cron job compatibility
+    if (req.method !== 'GET' && req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
     const client = await getClient();
     const db = client.db("galaxy_l9");
 

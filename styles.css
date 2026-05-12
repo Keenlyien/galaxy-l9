@@ -220,12 +220,12 @@ body {
 }
 
 
-/* TIMEZONE  */
+/* TIMEZONE - Next to hamburger menu */
 #tz-select {
-    position: absolute;
-    left: 200px; /* adjust if needed */
-    top: 39%;
-    transform: translateY(-50%);
+    position: fixed;
+    left: 65px;
+    top: 18px;
+    z-index: 1001;
     padding: 8px 12px;
     background: #222328;
     color: #ffffff;
