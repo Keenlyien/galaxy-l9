@@ -175,19 +175,23 @@ export default async function handler(req, res) {
         
         // Check pre-respawn intervals (only for future respawns)
         if (timeUntilRespawn > 0) {
+          console.log(`Checking intervals for ${boss.name}, timeUntilRespawn=${timeUntilRespawn}ms (${minutesUntil}min)`);
+          
           for (const interval of notifyIntervals) {
             if (interval === 0) continue;
             
             const intervalMs = interval * 60 * 1000;
             const diff = Math.abs(timeUntilRespawn - intervalMs);
             
-            // Within 30 seconds of the interval
-            if (diff < 30000) {
+            console.log(`  Interval ${interval}min: intervalMs=${intervalMs}ms, diff=${diff}ms, match=${diff < 60000}`);
+            
+            // Within 1 minute of the interval (more lenient)
+            if (diff < 60000) {
               const timeText = interval >= 60 ? `${Math.floor(interval/60)} minutes` : `${interval} minutes`;
               let content = `🎯 **${boss.name}** is respawning in **${timeText}** at ${boss.location}!`;
               if (roleId) content = `<@&${roleId}> ${content}`;
               notifications.push({ content, type: 'warning', interval });
-              console.log("Will send warning for:", boss.name, "at", interval, "min");
+              console.log("✓ Will send warning for:", boss.name, "at", interval, "min");
               break;
             }
           }
@@ -244,8 +248,9 @@ export default async function handler(req, res) {
         intervalsChecked: notifyIntervals,
         bossesWithKillTime: bosses.filter(b => b.last_killed).map(b => ({
           name: b.name,
-          lastKilled: b.lastKilled,
-          respawn: b.respawn
+          last_killed: b.last_killed,
+          respawn: b.respawn,
+          respawnHours: parseRespawnHours(b.respawn)
         })),
         notifications
       }
