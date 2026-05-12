@@ -916,59 +916,6 @@ select option {
     background: #4f46e5;
 }
 
-/* ==== SCHEDULED TIMES ==== */
-.scheduled-times-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.scheduled-time-item {
-    display: grid;
-    grid-template-columns: 1fr 100px 100px 80px;
-    gap: 12px;
-    align-items: center;
-    padding: 16px;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    border-radius: 12px;
-}
-
-.scheduled-time-item select,
-.scheduled-time-item input {
-    padding: 10px 12px;
-    border: 1px solid #3f3f46;
-    border-radius: 8px;
-    font-size: 14px;
-    color: #fafafa;
-    background: #18181b;
-    transition: all 0.2s;
-}
-
-.scheduled-time-item select:focus,
-.scheduled-time-item input:focus {
-    outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-}
-
-.scheduled-time-item .remove-scheduled {
-    background: #450a0a;
-    color: #fca5a5;
-    border: 1px solid #7f1d1d;
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: center;
-}
-
-.scheduled-time-item .remove-scheduled:hover {
-    background: #7f1d1d;
-}
-
 /* ==== DURATION GRID ==== */
 .duration-grid {
     display: grid;
@@ -1219,13 +1166,15 @@ select option {
 }
 
 .rp-pill {
-    display: inline-block;
-    margin-left: 12px;
-    padding: 8px 12px;
-    background: #1b1b1d;
-    border: 1px solid #333;
-    border-radius: 6px;
-    color: #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: #18181b;
+    border: 1px dashed #3f3f46;
+    border-radius: 12px;
+    color: #71717a;
+    font-size: 14px;
 }
 
 .duration-picker {
