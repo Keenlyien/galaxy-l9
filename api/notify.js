@@ -139,9 +139,10 @@ export default async function handler(req, res) {
     
     // Normal check from cron - check all bosses
     else {
-      console.log("Running normal cron check for all bosses");
+      console.log("Running normal cron check for all bosses, total:", bosses.length);
       
       for (const boss of bosses) {
+        console.log(`Boss: ${boss.name}, last_killed: ${boss.last_killed}`);
         if (!boss.last_killed) continue;
         
         const hours = parseRespawnHours(boss.respawn);
@@ -236,7 +237,19 @@ export default async function handler(req, res) {
       }
     }
     
-    res.status(200).json({ success: true, sent: notifications.length });
+    res.status(200).json({ 
+      success: true, 
+      sent: notifications.length,
+      details: {
+        intervalsChecked: notifyIntervals,
+        bossesWithKillTime: bosses.filter(b => b.last_killed).map(b => ({
+          name: b.name,
+          lastKilled: b.lastKilled,
+          respawn: b.respawn
+        })),
+        notifications
+      }
+    });
   } catch (err) {
     console.error("notify API error:", err);
     res.status(500).json({ error: err.message });
