@@ -500,8 +500,13 @@ async function unkillBoss(bossName) {
             const errText = await res.text();
             console.error("Server error:", res.status, errText);
         } else {
-            // Trigger immediate notification since boss is now "spawned"
-            sendDiscordNotification(bossName, true);
+            // Send "spawned" notification
+            const notifyRes = await fetch("/api/notify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ bossName: bossName, unkill: true })
+            });
+            console.log("Unkill notification sent:", await notifyRes.json());
         }
     } catch (err) {
         console.error("Network error:", err);
