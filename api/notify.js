@@ -166,7 +166,7 @@ export default async function handler(req, res) {
       // Respawned notification (0 minutes - boss just spawned)
       if (notifyIntervals.includes(0) && timeUntilRespawn <= 0 && timeUntilRespawn > -120000) {
         // Check if we already notified recently to avoid duplicates
-        const lastNotified = boss.lastNotifiedAt || 0;
+        const lastNotified = boss.notified_respawned || 0;
         if (now - lastNotified > 300000) { // 5 min cooldown
           let content = `The ${boss.name} has respawned at ${boss.location}!`;
           if (roleId) content = `<@&${roleId}> ${content}`;
@@ -176,7 +176,7 @@ export default async function handler(req, res) {
             // Update last notified time
             await db.collection("bosses").updateOne(
               { _id: boss._id },
-              { $set: { lastNotifiedAt: now, lastNotifiedType: "respawned" } }
+              { $set: { notified_respawned: now } }
             );
           }
         }
@@ -192,12 +192,11 @@ export default async function handler(req, res) {
           // Only send when time remaining is exactly at the interval (within the next minute after reaching that interval)
           // e.g., for 5 min: trigger when timeUntilRespawn is between 300000ms (5min) and 360000ms (6min)
           if (timeUntilRespawn >= intervalMs && timeUntilRespawn < intervalMs + 60000) {
-            // Check cooldown to prevent duplicate notifications
-            const lastNotifiedType = boss.lastNotifiedType || "";
-            const lastNotifiedAt = boss.lastNotifiedAt || 0;
-            const cooldownMs = interval * 60 * 1000; // Don't re-notify until next interval
+            // Check if we already notified for this specific interval
+            const lastNotifiedForInterval = boss[`notified_interval_${interval}`] || 0;
+            const cooldownMs = interval * 60 * 1000;
             
-            if (lastNotifiedType === `interval_${interval}` && (now - lastNotifiedAt) < cooldownMs) {
+            if (lastNotifiedForInterval && (now - lastNotifiedForInterval) < cooldownMs) {
               continue; // Already notified for this interval
             }
 
@@ -207,13 +206,15 @@ export default async function handler(req, res) {
             const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawn Soon!", 0xf59e0b);
             if (ok) {
               sent.push({ boss: boss.name, type: "warning", minutes: interval });
-              // Track that we notified for this interval
+              // Track that we notified for this specific interval (use separate field)
+              const updateField = {};
+              updateField[`notified_interval_${interval}`] = now;
               await db.collection("bosses").updateOne(
                 { _id: boss._id },
-                { $set: { lastNotifiedAt: now, lastNotifiedType: `interval_${interval}` } }
+                { $set: updateField }
               );
             }
-            break;
+            // Don't break - continue to check other intervals
           }
         }
       }
