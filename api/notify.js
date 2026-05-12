@@ -13,6 +13,76 @@ async function getClient() {
   return client;
 }
 
+function parseRespawnHours(text) {
+  if (!text) return null;
+  const match = text.match(/(\d+)\s*Hour/i);
+  if (match) return parseInt(match[1], 10);
+  const numMatch = text.match(/(\d+)/);
+  return numMatch ? parseInt(numMatch[1], 10) : null;
+}
+
+function parseWeeklyRespawns(text) {
+  if (!text) return null;
+  const entries = text.split(",").map(t => t.trim());
+  const times = [];
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  entries.forEach(entry => {
+    const match = entry.match(/(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\d{1,2}):(\d{2})/i);
+    if (match) {
+      times.push({ weekday: match[1], hour: parseInt(match[2]), minute: parseInt(match[3]) });
+    }
+  });
+  return times.length > 0 ? times : null;
+}
+
+function getNextWeeklySpawn(schedule) {
+  const now = new Date();
+  const nowUtcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const baseNow = new Date(nowUtcMs + 8 * 3600000);
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  let soonest = null;
+
+  schedule.forEach(item => {
+    const targetDay = days.indexOf(item.weekday);
+    const d = new Date(baseNow);
+    const today = baseNow.getDay();
+    let diff = targetDay - today;
+    if (diff < 0) diff += 7;
+    d.setDate(baseNow.getDate() + diff);
+    d.setHours(item.hour, item.minute, 0, 0);
+    if (d <= baseNow) d.setDate(d.getDate() + 7);
+    if (!soonest || d < soonest) soonest = d;
+  });
+
+  if (soonest) return soonest.getTime() + (8 - 8) * 3600000;
+  return null;
+}
+
+async function sendDiscordMessage(webhookUrl, content, title, color) {
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      content,
+      embeds: [{
+        title,
+        description: content,
+        color,
+        timestamp: new Date().toISOString()
+      }]
+    })
+  });
+
+  if (response.ok) {
+    console.log("Sent:", content);
+    return true;
+  } else {
+    console.error("Failed:", response.status, await response.text());
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
   try {
     console.log("Notify API called", req.method, req.body);
@@ -30,49 +100,82 @@ export default async function handler(req, res) {
       return res.status(200).json({ message: "No webhook configured" });
     }
 
-    const { webhookUrl, roleId } = discordSettings.data;
+    const { webhookUrl, roleId, notifyIntervals } = discordSettings.data;
     const { bossName, unkill, killed } = req.body;
+    const bosses = await db.collection("bosses").find({}).toArray();
+    const now = Date.now();
 
-    if (!bossName) {
-      return res.status(400).json({ error: "bossName is required" });
-    }
+    const sent = [];
 
-    const boss = await db.collection("bosses").findOne({ name: bossName });
-    if (!boss) {
-      return res.status(404).json({ error: "Boss not found" });
-    }
+    if (bossName && (unkill || killed)) {
+      const boss = bosses.find(b => b.name === bossName);
+      if (!boss) return res.status(404).json({ error: "Boss not found" });
 
-    let content;
-    if (unkill) {
-      content = `**${boss.name}** (Lv. ${boss.level}) at ${boss.location} has respawned!`;
-    } else if (killed) {
-      content = `**${boss.name}** killed at ${boss.location}!`;
-    } else {
-      return res.status(400).json({ error: "Must specify unkill or killed" });
-    }
+      let content;
+      if (unkill) {
+        content = `**${boss.name}** (Lv. ${boss.level}) at ${boss.location} has respawned!`;
+      } else {
+        content = `**${boss.name}** killed at ${boss.location}!`;
+      }
+      if (roleId) content = `<@&${roleId}> ${content}`;
 
-    if (roleId) content = `<@&${roleId}> ${content}`;
-
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      await sendDiscordMessage(
+        webhookUrl,
         content,
-        embeds: [{
-          title: unkill ? "Boss Respawned!" : "Boss Killed!",
-          description: content,
-          color: unkill ? 0x22c55e : 0xef4444,
-          timestamp: new Date().toISOString()
-        }]
-      })
-    });
+        unkill ? "Boss Respawned!" : "Boss Killed!",
+        unkill ? 0x22c55e : 0xef4444
+      );
+      sent.push({ boss: boss.name, type: unkill ? "respawned" : "killed" });
 
-    if (!response.ok) {
-      console.error("Discord webhook failed:", response.status, await response.text());
-      return res.status(500).json({ error: "Failed to send notification" });
+      return res.status(200).json({ success: true, sent });
     }
 
-    res.status(200).json({ success: true, message: content });
+    for (const boss of bosses) {
+      if (!boss.last_killed) continue;
+
+      const hours = parseRespawnHours(boss.respawn);
+      const weekly = parseWeeklyRespawns(boss.respawn);
+      let respawnTime = null;
+
+      if (hours !== null) {
+        respawnTime = Number(boss.last_killed) + hours * 3600 * 1000;
+      } else if (weekly) {
+        respawnTime = getNextWeeklySpawn(weekly);
+      }
+
+      if (!respawnTime) continue;
+
+      const timeUntilRespawn = respawnTime - now;
+      const minutesUntil = Math.round(timeUntilRespawn / 60000);
+
+      if (notifyIntervals.includes(0) && timeUntilRespawn <= 0 && timeUntilRespawn > -120000) {
+        let content = `**${boss.name}** (Lv. ${boss.level}) at ${boss.location} has respawned!`;
+        if (roleId) content = `<@&${roleId}> ${content}`;
+        const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawned!", 0x22c55e);
+        if (ok) sent.push({ boss: boss.name, type: "respawned", minutes: 0 });
+        continue;
+      }
+
+      if (timeUntilRespawn > 0) {
+        for (const interval of notifyIntervals) {
+          if (interval === 0) continue;
+
+          const intervalMs = interval * 60 * 1000;
+          const diff = Math.abs(timeUntilRespawn - intervalMs);
+
+          if (diff < 60000) {
+            const timeText = interval >= 60 ? `${Math.floor(interval / 60)} hours` : `${interval} minutes`;
+            let content = `**${boss.name}** is respawning in **${timeText}** at ${boss.location}!`;
+            if (roleId) content = `<@&${roleId}> ${content}`;
+            const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawn Soon!", 0xf59e0b);
+            if (ok) sent.push({ boss: boss.name, type: "warning", minutes: interval });
+            break;
+          }
+        }
+      }
+    }
+
+    res.status(200).json({ success: true, sent });
   } catch (err) {
     console.error("notify API error:", err);
     res.status(500).json({ error: err.message });
