@@ -1220,96 +1220,101 @@ select option {
     align-items: center;
 }
 
-/* ==== SCHEDULED TIMES (WEEKLY) ==== */
-.scheduled-times-list {
+/* ==== WEEKLY SCHEDULE ==== */
+#scheduled-respawn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-bottom: 24px;
+}
+
+#scheduled-label {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: #e4e4e7;
+    margin-bottom: 16px;
+}
+
+.weekly-schedule-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-}
-
-.scheduled-time-item {
-    display: flex;
-    align-items: center;
     gap: 12px;
-    padding: 20px;
-    background: #1f1f23;
-    border-radius: 16px;
-    border: 1px solid #27272a;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.scheduled-time-item label {
-    display: none;
-}
-
-.scheduled-time-item select,
-.scheduled-time-item input {
-    padding: 14px 16px;
+.weekly-time-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 80px 100px;
+    gap: 10px;
+    align-items: center;
+    background: #27272a;
+    padding: 16px;
     border-radius: 12px;
-    border: 1px solid #3f3f46;
+}
+
+.weekly-time-row select {
+    padding: 12px;
     background: #18181b;
+    border: 1px solid #3f3f46;
+    border-radius: 8px;
     color: #fafafa;
-    font-size: 15px;
-    font-weight: 500;
-    transition: all 0.2s;
+    font-size: 14px;
+    cursor: pointer;
 }
 
-.scheduled-time-item select:focus,
-.scheduled-time-item input:focus {
-    outline: none;
-    border-color: #818cf8;
-    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
-}
-
-.scheduled-time-item .day-select {
-    flex: 1.2;
-    min-width: 140px;
-}
-
-.scheduled-time-item .hour-input,
-.scheduled-time-item .minute-input {
-    flex: 0.8;
-    width: 80px;
+.weekly-time-row input {
+    padding: 12px;
+    background: #18181b;
+    border: 1px solid #3f3f46;
+    border-radius: 8px;
+    color: #fafafa;
+    font-size: 14px;
     text-align: center;
 }
 
-.scheduled-time-item .remove-scheduled {
-    background: transparent;
-    color: #f87171;
-    border: 1px solid #f87171;
-    padding: 12px 20px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.2s;
-    flex: 0 0 auto;
-}
-
-.scheduled-time-item .remove-scheduled:hover {
-    background: #fee2e2;
-    color: #dc2626;
-    border-color: #dc2626;
-}
-
-/* Add button styling */
-#add-scheduled-time {
-    background: linear-gradient(135deg, #6366f1, #4f46e5);
+.weekly-time-row .remove-btn {
+    background: #3f3f46;
+    color: #d4d4d8;
     border: none;
-    padding: 14px 24px;
-    border-radius: 12px;
-    color: #fff;
-    font-size: 15px;
-    font-weight: 600;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
 }
 
-#add-scheduled-time:hover {
-    background: linear-gradient(135deg, #4f46e5, #4338ca);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+.weekly-time-row .remove-btn:hover {
+    background: #52525b;
+}
+
+.add-time-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: 2px dashed #52525b;
+    color: #a1a1aa;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    justify-content: center;
+    margin-top: 12px;
+    transition: all 0.2s;
+}
+
+.add-time-btn:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.add-time-btn::before {
+    content: '+';
+    font-size: 18px;
+    font-weight: 700;
 }
 
 .respawn-time-item select,

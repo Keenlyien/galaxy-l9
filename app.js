@@ -901,12 +901,15 @@ function renderScheduledInline() {
     const container = document.getElementById('scheduled-times-list');
     if (!container) return;
     container.innerHTML = '';
+    
+    // Use the new weekly schedule list class
+    container.className = 'weekly-schedule-list';
+    
     scheduledTimes.forEach((t, idx) => {
         const row = document.createElement('div');
-        row.className = 'scheduled-time-item';
+        row.className = 'weekly-time-row';
 
         const daySel = document.createElement('select');
-        daySel.className = 'day-select';
         ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].forEach(d => {
             const opt = document.createElement('option'); opt.value = d; opt.textContent = d;
             const currentDay = dayToName(t.day || t.weekday);
@@ -916,17 +919,18 @@ function renderScheduledInline() {
         daySel.addEventListener('change', e => { scheduledTimes[idx].day = e.target.value; });
 
         const hourIn = document.createElement('input');
-        hourIn.type = 'number'; hourIn.min = 0; hourIn.max = 23; hourIn.className = 'hour-input';
+        hourIn.type = 'number'; hourIn.min = 0; hourIn.max = 23; hourIn.placeholder = '00';
         hourIn.value = (t.hour == null ? '' : t.hour);
         hourIn.addEventListener('change', e => { const v = e.target.value; scheduledTimes[idx].hour = v === '' ? null : Math.max(0, Math.min(23, parseInt(v,10)||0)); });
 
         const minuteIn = document.createElement('input');
-        minuteIn.type = 'number'; minuteIn.min = 0; minuteIn.max = 59; minuteIn.className = 'minute-input';
+        minuteIn.type = 'number'; minuteIn.min = 0; minuteIn.max = 59; minuteIn.placeholder = '00';
         minuteIn.value = (t.minute == null ? '' : t.minute);
         minuteIn.addEventListener('change', e => { const v = e.target.value; scheduledTimes[idx].minute = v === '' ? null : Math.max(0, Math.min(59, parseInt(v,10)||0)); });
 
         const removeBtn = document.createElement('button');
-        removeBtn.type = 'button'; removeBtn.className = 'remove-scheduled'; removeBtn.textContent = 'Remove';
+        removeBtn.type = 'button'; removeBtn.className = 'remove-btn'; removeBtn.textContent = '✕';
+        removeBtn.title = 'Remove';
         removeBtn.addEventListener('click', () => { scheduledTimes.splice(idx,1); renderScheduledInline(); });
 
         row.appendChild(daySel);
@@ -936,10 +940,16 @@ function renderScheduledInline() {
         container.appendChild(row);
     });
 
-    // If no rows, show an empty placeholder
-    if (scheduledTimes.length === 0) {
-        const ph = document.createElement('div'); ph.className = 'rp-pill'; ph.textContent = 'No times set'; container.appendChild(ph);
-    }
+    // Add time button
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'add-time-btn';
+    addBtn.textContent = 'Add Time';
+    addBtn.addEventListener('click', () => {
+        scheduledTimes.push({ day: 'Monday', hour: 12, minute: 0 });
+        renderScheduledInline();
+    });
+    container.appendChild(addBtn);
 }
 
 function renderScheduledTimesList() {
