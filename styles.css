@@ -1224,18 +1224,18 @@ select option {
 .scheduled-times-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
 }
 
 .scheduled-time-item {
-    display: grid;
-    grid-template-columns: 1fr 80px 80px auto;
-    gap: 10px;
+    display: flex;
     align-items: center;
-    padding: 16px;
-    background: #27272a;
-    border-radius: 12px;
-    border: 1px solid #3f3f46;
+    gap: 12px;
+    padding: 20px;
+    background: #1f1f23;
+    border-radius: 16px;
+    border: 1px solid #27272a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .scheduled-time-item label {
@@ -1244,66 +1244,72 @@ select option {
 
 .scheduled-time-item select,
 .scheduled-time-item input {
-    padding: 10px 12px;
-    border-radius: 8px;
+    padding: 14px 16px;
+    border-radius: 12px;
     border: 1px solid #3f3f46;
     background: #18181b;
     color: #fafafa;
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 500;
     transition: all 0.2s;
 }
 
 .scheduled-time-item select:focus,
 .scheduled-time-item input:focus {
     outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
 }
 
 .scheduled-time-item .day-select {
+    flex: 1.2;
     min-width: 140px;
 }
 
 .scheduled-time-item .hour-input,
 .scheduled-time-item .minute-input {
-    width: 100%;
+    flex: 0.8;
+    width: 80px;
     text-align: center;
 }
 
 .scheduled-time-item .remove-scheduled {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
-    color: #fff;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 8px;
+    background: transparent;
+    color: #f87171;
+    border: 1px solid #f87171;
+    padding: 12px 20px;
+    border-radius: 12px;
     cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 600;
     transition: all 0.2s;
+    flex: 0 0 auto;
 }
 
 .scheduled-time-item .remove-scheduled:hover {
-    background: linear-gradient(135deg, #b91c1c, #991b1b);
-    transform: scale(1.02);
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #dc2626;
 }
 
 /* Add button styling */
 #add-scheduled-time {
     background: linear-gradient(135deg, #6366f1, #4f46e5);
     border: none;
-    padding: 10px 18px;
-    border-radius: 8px;
+    padding: 14px 24px;
+    border-radius: 12px;
     color: #fff;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
 }
 
 #add-scheduled-time:hover {
     background: linear-gradient(135deg, #4f46e5, #4338ca);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
 .respawn-time-item select,
