@@ -1627,15 +1627,16 @@ document.addEventListener("DOMContentLoaded", () => {
 // Add Discord link to sidebar
 document.addEventListener("DOMContentLoaded", () => {
     const sidebar = document.querySelector(".sidebar");
-    if (sidebar) {
-        const discordLink = document.createElement("a");
-        discordLink.href = "#";
-        discordLink.textContent = "Discord Settings";
-        discordLink.onclick = (e) => {
-            e.preventDefault();
-            showDiscordModal(true);
-        };
-        sidebar.appendChild(discordLink);
-    }
+    // Discord Settings hidden for now
+    // if (sidebar) {
+    //     const discordLink = document.createElement("a");
+    //     discordLink.href = "#";
+    //     discordLink.textContent = "Discord Settings";
+    //     discordLink.onclick = (e) => {
+    //         e.preventDefault();
+    //         showDiscordModal(true);
+    //     };
+    //     sidebar.appendChild(discordLink);
+    // }
 });
 

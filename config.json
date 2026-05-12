@@ -5,6 +5,7 @@
         "webhookUrl": "",
         "roleId": "",
         "notifyIntervals": [0, 5, 10, 15, 20],
-        "enabled": false
+        "enabled": false,
+        "hidden": true
     }
 }
