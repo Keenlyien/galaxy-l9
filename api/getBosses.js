@@ -1,11 +1,17 @@
 import { MongoClient } from "mongodb";
 
 const uri = process.env.MONGODB_URI;
+
+if (!uri) {
+  console.error("MONGODB_URI environment variable is not set!");
+}
+
 let client = null;
 
 async function getClient() {
     if (!client) {
-        client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+        if (!uri) throw new Error("Database configuration missing");
+        client = new MongoClient(uri);
         await client.connect();
     }
     return client;
@@ -17,7 +23,6 @@ export default async function handler(req, res) {
         const db = client.db("galaxy_l9");
         const bosses = await db.collection("bosses").find({}).toArray();
 
-        // Ensure we return only the expected fields including imageData
         const cleaned = bosses.map(b => ({
             name: b.name,
             level: b.level,
@@ -29,6 +34,7 @@ export default async function handler(req, res) {
 
         res.status(200).json(cleaned);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("getBosses API error:", err);
+        res.status(500).json({ error: err.message || "Internal server error" });
     }
 }

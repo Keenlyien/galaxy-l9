@@ -41,9 +41,12 @@
         <option value="en">English</option>
         <option value="th">ไทย</option>
     </select>
-    <select id="tz-select" onchange="setTimezone(this.value)">
+    <select id="tz-select">
         <option value="8">UTC +8</option>
         <option value="7">UTC +7</option>
+        <option value="9">UTC +9</option>
+        <option value="6">UTC +6</option>
+        <option value="5">UTC +5</option>
     </select>
 </div>
 
@@ -91,7 +94,7 @@
             </div>
 
             <!-- Unscheduled respawn UI (hourly) -->
-            <label id="unscheduled-label" style="margin-top:8px; display:block; display:none;">Respawn Duration</label>
+            <label id="unscheduled-label" style="margin-top:8px; display:none;">Respawn Duration</label>
             <div id="unscheduled-respawn" class="respawn-section hidden">
                 <div class="duration-picker">
                     <div class="duration-input">

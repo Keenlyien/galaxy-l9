@@ -1,11 +1,17 @@
 import { MongoClient } from "mongodb";
 
-let client;
 const uri = process.env.MONGODB_URI;
+
+if (!uri) {
+  console.error("MONGODB_URI environment variable is not set!");
+}
+
+let client;
 
 async function getClient() {
   if (!client) {
-    client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    if (!uri) throw new Error("Database configuration missing");
+    client = new MongoClient(uri);
     await client.connect();
   }
   return client;
@@ -22,7 +28,6 @@ export default async function handler(req, res) {
       if (!action || !boss || !boss.name) return res.status(400).json({ error: "Missing action or boss.name" });
 
       if (action === "create" || action === "update") {
-        // Upsert by name
         const update = {
           $set: {
             name: boss.name,
@@ -49,7 +54,7 @@ export default async function handler(req, res) {
 
     res.status(405).json({ error: "Method Not Allowed" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("manageBoss API error:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
   }
 }

@@ -1,5 +1,5 @@
 // Redirect if not logged in
-let currentLang = 'en'; // default language
+let currentLang = localStorage.getItem("language") || 'en';
 
 
 // Optional: real-time updates via SSE
@@ -81,8 +81,11 @@ loadBossStatusFromDB();
 
 function setLanguage(lang) {
     currentLang = lang;
+    localStorage.setItem("language", lang);
 
-    // Update login page if exists
+    const langSelect = document.getElementById("lang-select");
+    if (langSelect) langSelect.value = lang;
+
     if (document.getElementById("username")) {
         document.querySelector("h2").textContent = LANG[lang].login_title;
         document.getElementById("username").placeholder = LANG[lang].username_placeholder;
@@ -90,13 +93,12 @@ function setLanguage(lang) {
         document.querySelector(".btn").textContent = LANG[lang].login_btn;
     }
 
-    // Update dashboard page if exists
     if (document.querySelector(".header-title")) {
         document.querySelector(".header-title").textContent = LANG[lang].boss_schedule_title;
-        document.querySelector(".logout-btn").textContent = LANG[lang].logout_btn;
+        const logoutBtn = document.querySelector(".logout-btn");
+        if (logoutBtn) logoutBtn.textContent = LANG[lang].logout_btn;
     }
 
-    // Re-render bosses so button text and status updates
     if (typeof renderBosses === "function") renderBosses();
 }
 
@@ -218,9 +220,11 @@ function getNextWeeklySpawn(schedule) {
 
 // offset
 function setTimezone(offset) {
-    currentTzOffset = Number(offset);      // update the global variable
-    localStorage.setItem("tz_offset", currentTzOffset); // persist selection
-    renderBosses();                        // re-render immediately
+    currentTzOffset = parseInt(offset, 10) || 8;
+    localStorage.setItem("tz_offset", currentTzOffset);
+    const tzSelect = document.getElementById("tz-select");
+    if (tzSelect) tzSelect.value = String(currentTzOffset);
+    renderBosses();
 }
 
 
@@ -678,7 +682,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const tzSelect = document.getElementById("tz-select");
     if (tzSelect) {
         tzSelect.value = String(currentTzOffset);
+        tzSelect.addEventListener("change", e => {
+            setTimezone(e.target.value);
+        });
     }
+    const langSelect = document.getElementById("lang-select");
+    if (langSelect) {
+        langSelect.value = currentLang;
+    }
+    setLanguage(currentLang);
 });
 
 async function saveBossFromModal() {
@@ -772,9 +784,11 @@ async function saveBossFromModal() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action, boss: payload })
         });
-        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to save");
         await loadBossStatusFromDB();
         showBossModal(false);
+        resetBossForm();
     } catch (err) {
         console.error("Failed to save boss:", err);
         showFormErrors(["Failed to save boss: " + err.message]);
@@ -799,6 +813,22 @@ function clearFormErrors() {
     if (!el) return;
     el.style.display = "none";
     el.innerHTML = "";
+}
+
+function resetBossForm() {
+    document.getElementById("boss-name").value = "";
+    document.getElementById("boss-location").value = "";
+    document.getElementById("boss-level").value = "";
+    document.getElementById("boss-schedule-type").value = "";
+    document.getElementById("boss-respawn-days").value = "0";
+    document.getElementById("boss-respawn-hours").value = "0";
+    document.getElementById("boss-respawn-minutes").value = "0";
+    const imgInput = document.getElementById("boss-image");
+    if (imgInput) imgInput.value = "";
+    scheduledTimes = [];
+    clearFormErrors();
+    const deleteConfirm = document.getElementById("boss-delete-confirm");
+    if (deleteConfirm) deleteConfirm.style.display = "none";
 }
 
 async function deleteBossFromModal() {
