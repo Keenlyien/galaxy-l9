@@ -75,7 +75,7 @@ function getNextWeeklySpawn(schedule) {
 
 export default async function handler(req, res) {
   try {
-    console.log("Notify API called", req.body);
+    console.log("Notify API called", req.method, req.body);
     const client = await getClient();
     const db = client.db("galaxy_l9");
     
@@ -83,15 +83,20 @@ export default async function handler(req, res) {
     const settingsCollection = db.collection("settings");
     const discordSettings = await settingsCollection.findOne({ type: "discord" });
     
+    console.log("Discord settings:", discordSettings?.data);
+    
     if (!discordSettings?.data?.enabled) {
+      console.log("Notifications disabled");
       return res.status(200).json({ message: "Notifications disabled" });
     }
     
     if (!discordSettings?.data?.webhookUrl) {
+      console.log("No webhook configured");
       return res.status(200).json({ message: "No webhook configured" });
     }
     
     const { webhookUrl, roleId, notifyIntervals } = discordSettings.data;
+    console.log("Notify intervals:", notifyIntervals);
     const notifications = [];
     const bosses = await db.collection("bosses").find({}).toArray();
     const now = Date.now();
@@ -134,11 +139,15 @@ export default async function handler(req, res) {
     
     // Normal check from cron - check all bosses
     else {
+      console.log("Running normal cron check for all bosses");
+      
       for (const boss of bosses) {
         if (!boss.last_killed) continue;
         
         const hours = parseRespawnHours(boss.respawn);
         const weekly = parseWeeklyRespawns(boss.respawn);
+        
+        console.log(`Checking ${boss.name}: hours=${hours}, weekly=${!!weekly}, last_killed=${boss.last_killed}`);
         
         let respawnTime = null;
         
@@ -154,7 +163,7 @@ export default async function handler(req, res) {
         const timeUntilRespawn = respawnTime - now;
         const minutesUntil = Math.round(timeUntilRespawn / 60000);
         
-        console.log(`${boss.name}: ${minutesUntil} minutes (${timeUntilRespawn}ms)`);
+        console.log(`${boss.name}: ${minutesUntil} min until respawn (${timeUntilRespawn}ms), checking intervals: ${notifyIntervals}`);
         
         // Check "Now" - respawned within last 2 minutes
         if (notifyIntervals.includes(0) && timeUntilRespawn <= 0 && timeUntilRespawn > -120000) {
@@ -188,6 +197,7 @@ export default async function handler(req, res) {
     console.log("Total notifications to send:", notifications.length);
     
     // Send all notifications
+    console.log("Sending notifications:", notifications.length);
     for (const notif of notifications) {
       try {
         let title, color;
@@ -202,7 +212,7 @@ export default async function handler(req, res) {
           color = 0xf59e0b;
         }
         
-        await fetch(webhookUrl, {
+        const response = await fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -215,9 +225,14 @@ export default async function handler(req, res) {
             }]
           })
         });
-        console.log("Sent:", notif.content);
+        
+        if (response.ok) {
+          console.log("✓ Sent:", notif.content);
+        } else {
+          console.log("✗ Failed:", response.status, await response.text());
+        }
       } catch (e) {
-        console.error("Failed to send:", e.message);
+        console.error("✗ Error:", e.message);
       }
     }
     
