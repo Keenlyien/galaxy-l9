@@ -471,12 +471,29 @@ async function unkillBoss(bossName) {
         if (!res.ok) {
             const errText = await res.text();
             console.error("Server error:", res.status, errText);
+        } else {
+            // Trigger immediate notification since boss is now "spawned"
+            sendDiscordNotification(bossName, true);
         }
     } catch (err) {
         console.error("Network error:", err);
     }
 
     renderBosses();
+}
+
+async function sendDiscordNotification(bossName, isRespawned = false) {
+    try {
+        const res = await fetch("/api/notify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bossName, immediate: isRespawned, trigger: true })
+        });
+        const data = await res.json();
+        console.log("Notification result:", data);
+    } catch (err) {
+        console.error("Failed to send notification:", err);
+    }
 }
 
 
