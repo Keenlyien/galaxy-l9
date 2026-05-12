@@ -447,6 +447,34 @@ async function killBoss(bossName) {
             console.error("Server error:", res.status, errText);
         } else {
             console.log("Server updated successfully");
+            
+            // Send notification about kill
+            const respawnHours = parseRespawnHours(boss.respawn);
+            let message = "";
+            if (respawnHours !== null) {
+                const hours = Math.floor(respawnHours);
+                const mins = Math.round((respawnHours - hours) * 60);
+                if (hours > 0 && mins > 0) {
+                    message = `${hours}h ${mins}m`;
+                } else if (hours > 0) {
+                    message = `${hours} hour(s)`;
+                } else {
+                    message = `${mins} minutes`;
+                }
+            }
+            
+            const notifyRes = await fetch("/api/notify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    bossName: bossName, 
+                    killed: true,
+                    respawnInfo: message,
+                    location: boss.location,
+                    level: boss.level
+                })
+            });
+            console.log("Kill notification sent:", await notifyRes.json());
         }
     } catch (err) {
         console.error("Network error:", err);

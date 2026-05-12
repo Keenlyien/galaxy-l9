@@ -92,62 +92,96 @@ export default async function handler(req, res) {
     }
     
     const { webhookUrl, roleId, notifyIntervals } = discordSettings.data;
-    const now = Date.now();
-    const bosses = await db.collection("bosses").find({}).toArray();
-    
     const notifications = [];
     
-    // If triggered immediately (from unkill), only notify for that specific boss
-    const triggerBoss = req.body?.trigger ? req.body.bossName : null;
+    // Check if this is an immediate trigger from kill/unkill
+    const isKillTrigger = req.body?.killed === true;
+    const isUnkillTrigger = req.body?.trigger === true;
+    const triggerBoss = req.body?.bossName;
     
-    for (const boss of bosses) {
-      // Skip if we're only triggering for a specific boss
-      if (triggerBoss && boss.name !== triggerBoss) continue;
-      
-      // Skip bosses without kill time
-      if (!boss.last_killed) continue;
-      
-      const hours = parseRespawnHours(boss.respawn);
-      const weekly = parseWeeklyRespawns(boss.respawn);
-      
-      let respawnTime = null;
-      let isRespawned = false;
-      
-      if (hours !== null) {
-        const respawnMs = hours * 3600 * 1000;
-        respawnTime = Number(boss.last_killed) + respawnMs;
-        isRespawned = respawnTime <= now;
-      } else if (weekly) {
-        respawnTime = getNextWeeklySpawn(weekly);
-        isRespawned = respawnTime <= now;
-      }
-      
-      if (!respawnTime) continue;
-      
-      const timeUntilRespawn = respawnTime - now;
-      const minutesUntil = Math.round(timeUntilRespawn / 60000);
-      
-      console.log(`${boss.name}: ${minutesUntil} minutes until respawn (isRespawned: ${isRespawned})`);
-      
-      // Check "Now" (respawned)
-      if (notifyIntervals.includes(0) && isRespawned) {
-        let content = `✅ **${boss.name}** (Lv. ${boss.level}) at ${boss.location} has respawned!`;
-        if (roleId) content = `<@&${roleId}> ${content}`;
-        notifications.push({ content, type: 'respawned' });
-      }
-      
-      // Check pre-respawn intervals
-      if (!isRespawned) {
-        for (const interval of notifyIntervals) {
-          if (interval === 0) continue; // Skip "Now" for pre-notifications
+    // Get bosses from DB
+    const bosses = await db.collection("bosses").find({}).toArray();
+    const now = Date.now();
+    
+    // If triggered from kill - send notification about respawn time
+    if (isKillTrigger && triggerBoss) {
+      const boss = bosses.find(b => b.name === triggerBoss);
+      if (boss) {
+        const hours = parseRespawnHours(boss.respawn);
+        let respawnTime = null;
+        
+        if (hours !== null) {
+          respawnTime = hours * 60; // convert to minutes
+        }
+        
+        if (respawnTime !== null) {
+          const hoursVal = Math.floor(respawnTime / 60);
+          const minsVal = Math.round(respawnTime % 60);
+          let timeText = "";
+          if (hoursVal > 0 && minsVal > 0) timeText = `${hoursVal}h ${minsVal}m`;
+          else if (hoursVal > 0) timeText = `${hoursVal} hour(s)`;
+          else timeText = `${minsVal} minutes`;
           
-          // Check if we're within range of this interval
-          if (minutesUntil === interval || (minutesUntil < interval && minutesUntil >= interval - 1)) {
-            const timeText = interval >= 60 ? `${Math.floor(interval/60)} hour(s)` : `${interval} minutes`;
-            let content = `🎯 **${boss.name}** (Lv. ${boss.level}) at ${boss.location} will respawn in ${timeText}!`;
-            if (roleId) content = `<@&${roleId}> ${content}`;
-            notifications.push({ content, type: 'warning', interval });
-            break; // Only send one notification per boss
+          let content = `💀 **${boss.name}** (Lv. ${boss.level}) at ${boss.location} killed! Respawns in **${timeText}**`;
+          if (roleId) content = `<@&${roleId}> ${content}`;
+          notifications.push({ content, type: 'killed' });
+        }
+      }
+    }
+    
+    // Normal cron job - check all bosses for respawn/interval notifications
+    if (!isKillTrigger) {
+      for (const boss of bosses) {
+        if (!boss.last_killed) continue;
+        
+        const hours = parseRespawnHours(boss.respawn);
+        const weekly = parseWeeklyRespawns(boss.respawn);
+        
+        let respawnTime = null;
+        
+        if (hours !== null) {
+          const respawnMs = hours * 3600 * 1000;
+          respawnTime = Number(boss.last_killed) + respawnMs;
+        } else if (weekly) {
+          respawnTime = getNextWeeklySpawn(weekly);
+        }
+        
+        if (!respawnTime) continue;
+        
+        const timeUntilRespawn = respawnTime - now;
+        const minutesUntil = Math.round(timeUntilRespawn / 60000);
+        
+        console.log(`${boss.name}: ${minutesUntil} minutes until respawn`);
+        
+        // Skip if triggered from unkill (already sent spawned notification)
+        if (isUnkillTrigger && boss.name === triggerBoss) {
+          // Send spawned notification
+          let content = `✅ **${boss.name}** (Lv. ${boss.level}) at ${boss.location} has respawned!`;
+          if (roleId) content = `<@&${roleId}> ${content}`;
+          notifications.push({ content, type: 'respawned' });
+          continue;
+        }
+        
+        // Check "Now" (respawned within last 2 minutes)
+        if (notifyIntervals.includes(0) && timeUntilRespawn <= 0 && timeUntilRespawn > -120000) {
+          let content = `✅ **${boss.name}** (Lv. ${boss.level}) at ${boss.location} has respawned!`;
+          if (roleId) content = `<@&${roleId}> ${content}`;
+          notifications.push({ content, type: 'respawned' });
+        }
+        
+        // Check pre-respawn intervals
+        if (timeUntilRespawn > 0) {
+          for (const interval of notifyIntervals) {
+            if (interval === 0) continue;
+            
+            // Send when we're exactly at or 1 minute before the interval
+            if (minutesUntil === interval || (minutesUntil < interval && minutesUntil >= interval - 1)) {
+              const timeText = interval >= 60 ? `${Math.floor(interval/60)} hour(s)` : `${interval} minutes`;
+              let content = `🎯 **${boss.name}** (Lv. ${boss.level}) at ${boss.location} will respawn in **${timeText}**!`;
+              if (roleId) content = `<@&${roleId}> ${content}`;
+              notifications.push({ content, type: 'warning', interval });
+              break;
+            }
           }
         }
       }
@@ -155,12 +189,20 @@ export default async function handler(req, res) {
     
     console.log("Sending notifications:", notifications.length);
     
-    // Send notifications
+    // Send all notifications
     for (const notif of notifications) {
       try {
-        const embed = notif.type === 'respawned'
-          ? { title: "🔔 Boss Respawned!", color: 0x22c55e }
-          : { title: "⏰ Boss Respawn Soon!", color: 0xf59e0b };
+        let title, color;
+        if (notif.type === 'killed') {
+          title = "💀 Boss Killed!";
+          color = 0xef4444;
+        } else if (notif.type === 'respawned') {
+          title = "✅ Boss Respawned!";
+          color = 0x22c55e;
+        } else {
+          title = "⏰ Boss Respawn Soon!";
+          color = 0xf59e0b;
+        }
         
         await fetch(webhookUrl, {
           method: "POST",
@@ -168,14 +210,16 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             content: notif.content,
             embeds: [{
-              ...embed,
+              title,
               description: notif.content,
+              color,
               timestamp: new Date().toISOString()
             }]
           })
         });
+        console.log("Sent:", notif.content.substring(0, 50));
       } catch (e) {
-        console.error("Failed to send notification:", e.message);
+        console.error("Failed to send:", e.message);
       }
     }
     
