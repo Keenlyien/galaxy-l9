@@ -67,65 +67,88 @@
 <!-- Add/Edit Boss Modal -->
 <div id="boss-modal" class="modal hidden">
     <div class="modal-content">
-        <h2 id="boss-modal-title">Add Boss</h2>
-        <form id="boss-form">
-            <label>Name</label>
-            <input type="text" id="boss-name" required>
-            <label>Location</label>
-            <input type="text" id="boss-location" required>
-            <label>Level</label>
-            <input type="number" id="boss-level" min="0" required>
-            <label>Schedule Type</label>
-            <select id="boss-schedule-type" required>
-                <option value="">-- Select --</option>
-                <option value="scheduled">Scheduled (Weekly)</option>
-                <option value="unscheduled">Unscheduled (Hourly)</option>
-            </select>
-            <!-- Scheduled respawn UI (weekly) -->
-            <label id="scheduled-label" style="margin-top:8px; display:block;">Weekly Respawn Times</label>
+        <div class="modal-header">
+            <h2 id="boss-modal-title">Add New Boss</h2>
+            <button class="modal-close" onclick="showBossModal(false)">&times;</button>
+        </div>
+        <form id="boss-form" class="boss-form">
+            <div class="form-group">
+                <label for="boss-name">Boss Name</label>
+                <input type="text" id="boss-name" placeholder="Enter boss name" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="boss-location">Location</label>
+                    <input type="text" id="boss-location" placeholder="e.g., Galaxy Field" required>
+                </div>
+                <div class="form-group">
+                    <label for="boss-level">Level</label>
+                    <input type="number" id="boss-level" min="1" placeholder="1" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="boss-schedule-type">Schedule Type</label>
+                <select id="boss-schedule-type" required>
+                    <option value="">Choose schedule type</option>
+                    <option value="scheduled">Weekly Schedule</option>
+                    <option value="unscheduled">Hourly Respawn</option>
+                </select>
+            </div>
+
+            <!-- Scheduled Weekly -->
             <div id="scheduled-respawn" class="respawn-section hidden">
-                <div class="scheduled-times-list" id="scheduled-times-list">
-                    <!-- scheduled rows rendered here -->
+                <div class="section-header">
+                    <label>Weekly Schedule</label>
+                    <button type="button" id="add-scheduled-time" class="btn-add">+ Add Time</button>
                 </div>
-                <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-                    <button id="add-scheduled-time" type="button" class="btn-small">Add</button>
-                    <div style="flex:1"></div>
-                </div>
+                <div class="scheduled-times-list" id="scheduled-times-list"></div>
             </div>
 
-            <!-- Unscheduled respawn UI (hourly) -->
-            <label id="unscheduled-label" style="margin-top:8px; display:none;">Respawn Duration</label>
+            <!-- Hourly Respawn -->
             <div id="unscheduled-respawn" class="respawn-section hidden">
-                <div class="duration-picker">
-                    <div class="duration-input">
-                        <label>Days</label>
+                <label>Respawn Duration</label>
+                <div class="duration-grid">
+                    <div class="duration-field">
                         <input type="number" id="boss-respawn-days" min="0" value="0">
+                        <span>Days</span>
                     </div>
-                    <div class="duration-input">
-                        <label>Hours</label>
+                    <div class="duration-field">
                         <input type="number" id="boss-respawn-hours" min="0" max="23" value="0">
+                        <span>Hours</span>
                     </div>
-                    <div class="duration-input">
-                        <label>Minutes</label>
+                    <div class="duration-field">
                         <input type="number" id="boss-respawn-minutes" min="0" max="59" value="0">
+                        <span>Minutes</span>
                     </div>
                 </div>
             </div>
 
-            <label>Image (optional, max 4MB)</label>
-            <input type="file" id="boss-image" accept="image/*">
-            <div id="boss-form-errors" class="form-errors" style="display:none; margin-top:8px;"></div>
-            <div id="boss-delete-confirm" style="display:none; margin-top:8px;">
-                <div class="form-errors" id="boss-delete-message">Are you sure you want to delete this boss? This action cannot be undone.</div>
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                    <button type="button" id="boss-delete-confirm-yes" class="btn danger">Delete</button>
-                    <button type="button" id="boss-delete-confirm-no" class="btn">Cancel</button>
+            <div class="form-group">
+                <label>Boss Image</label>
+                <div class="file-upload">
+                    <input type="file" id="boss-image" accept="image/*">
+                    <span class="file-hint">Max 4MB</span>
                 </div>
             </div>
-            <div class="modal-buttons">
-                <button type="button" id="boss-save" class="btn">Save</button>
-                <button type="button" id="boss-cancel" class="btn">Cancel</button>
-                <button type="button" id="boss-delete" class="btn danger" style="display:none;">Delete</button>
+
+            <div id="boss-form-errors" class="form-errors"></div>
+
+            <div id="boss-delete-confirm" class="delete-confirm hidden">
+                <p>Are you sure you want to delete this boss? This action cannot be undone.</p>
+                <div class="confirm-buttons">
+                    <button type="button" id="boss-delete-confirm-yes" class="btn btn-danger">Delete</button>
+                    <button type="button" id="boss-delete-confirm-no" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" id="boss-delete" class="btn btn-danger-outline hidden">Delete</button>
+                <div class="footer-right">
+                    <button type="button" id="boss-cancel" class="btn btn-secondary">Cancel</button>
+                    <button type="button" id="boss-save" class="btn btn-primary">Save Boss</button>
+                </div>
             </div>
         </form>
     </div>
