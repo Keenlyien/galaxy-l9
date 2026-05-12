@@ -164,7 +164,7 @@ export default async function handler(req, res) {
       const minutesUntil = Math.round(timeUntilRespawn / 60000);
 
       if (notifyIntervals.includes(0) && timeUntilRespawn <= 0 && timeUntilRespawn > -120000) {
-        let content = `**${boss.name}** (Lv. ${boss.level}) at ${boss.location} has respawned!`;
+        let content = `${boss.name} has respawned in ${boss.location}!`;
         if (roleId) content = `<@&${roleId}> ${content}`;
         const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawned!", 0x22c55e);
         if (ok) sent.push({ boss: boss.name, type: "respawned", minutes: 0 });
@@ -179,8 +179,8 @@ export default async function handler(req, res) {
           const diff = Math.abs(timeUntilRespawn - intervalMs);
 
           if (diff < 60000) {
-            const timeText = interval >= 60 ? `${Math.floor(interval / 60)} hours` : `${interval} minutes`;
-            let content = `**${boss.name}** is respawning in **${timeText}** at ${boss.location}!`;
+            const timeText = interval >= 60 ? `${Math.floor(interval / 60)} hour(s)` : `${interval} minutes`;
+            let content = `${boss.name} is respawning in ${timeText} in ${boss.location}`;
             if (roleId) content = `<@&${roleId}> ${content}`;
             const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawn Soon!", 0xf59e0b);
             if (ok) sent.push({ boss: boss.name, type: "warning", minutes: interval });
