@@ -115,7 +115,7 @@ export default async function handler(req, res) {
           else if (hoursVal > 0) timeText = `${hoursVal} hour(s)`;
           else timeText = `${minsVal} minutes`;
           
-          let content = `💀 **${boss.name}** (Lv. ${boss.level}) at ${boss.location} killed! Respawns in **${timeText}**`;
+          let content = `💀 **${boss.name}** killed at ${boss.location}! Respawns in **${timeText}**`;
           if (roleId) content = `<@&${roleId}> ${content}`;
           notifications.push({ content, type: 'killed' });
         }
@@ -173,8 +173,8 @@ export default async function handler(req, res) {
             
             // Within 30 seconds of the interval
             if (diff < 30000) {
-              const timeText = interval >= 60 ? `${Math.floor(interval/60)} hour(s)` : `${interval} minutes`;
-              let content = `🎯 **${boss.name}** (Lv. ${boss.level}) at ${boss.location} will respawn in **${timeText}**!`;
+              const timeText = interval >= 60 ? `${Math.floor(interval/60)} minutes` : `${interval} minutes`;
+              let content = `🎯 **${boss.name}** is respawning in **${timeText}** at ${boss.location}!`;
               if (roleId) content = `<@&${roleId}> ${content}`;
               notifications.push({ content, type: 'warning', interval });
               console.log("Will send warning for:", boss.name, "at", interval, "min");
