@@ -163,27 +163,57 @@ export default async function handler(req, res) {
       const timeUntilRespawn = respawnTime - now;
       const minutesUntil = Math.round(timeUntilRespawn / 60000);
 
+      // Respawned notification (0 minutes - boss just spawned)
       if (notifyIntervals.includes(0) && timeUntilRespawn <= 0 && timeUntilRespawn > -120000) {
-        let content = `${boss.name} has respawned in ${boss.location}!`;
-        if (roleId) content = `<@&${roleId}> ${content}`;
-        const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawned!", 0x22c55e);
-        if (ok) sent.push({ boss: boss.name, type: "respawned", minutes: 0 });
+        // Check if we already notified recently to avoid duplicates
+        const lastNotified = boss.lastNotifiedAt || 0;
+        if (now - lastNotified > 300000) { // 5 min cooldown
+          let content = `${boss.name} has respawned in ${boss.location}!`;
+          if (roleId) content = `<@&${roleId}> ${content}`;
+          const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawned!", 0x22c55e);
+          if (ok) {
+            sent.push({ boss: boss.name, type: "respawned", minutes: 0 });
+            // Update last notified time
+            await db.collection("bosses").updateOne(
+              { _id: boss._id },
+              { $set: { lastNotifiedAt: now, lastNotifiedType: "respawned" } }
+            );
+          }
+        }
         continue;
       }
 
+      // Pre-notification at exact intervals (5, 10, 15, 20, 30 min)
       if (timeUntilRespawn > 0) {
         for (const interval of notifyIntervals) {
           if (interval === 0) continue;
 
           const intervalMs = interval * 60 * 1000;
+          // Only send within 30 seconds of the exact interval (not 1 minute window)
           const diff = Math.abs(timeUntilRespawn - intervalMs);
 
-          if (diff < 60000) {
+          if (diff < 30000) {
+            // Check cooldown to prevent duplicate notifications
+            const lastNotifiedType = boss.lastNotifiedType || "";
+            const lastNotifiedAt = boss.lastNotifiedAt || 0;
+            const cooldownMs = interval * 60 * 1000; // Don't re-notify until next interval
+            
+            if (lastNotifiedType === `interval_${interval}` && (now - lastNotifiedAt) < cooldownMs) {
+              continue; // Already notified for this interval
+            }
+
             const timeText = interval >= 60 ? `${Math.floor(interval / 60)} hour(s)` : `${interval} minutes`;
             let content = `${boss.name} is respawning in ${timeText} in ${boss.location}`;
             if (roleId) content = `<@&${roleId}> ${content}`;
             const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawn Soon!", 0xf59e0b);
-            if (ok) sent.push({ boss: boss.name, type: "warning", minutes: interval });
+            if (ok) {
+              sent.push({ boss: boss.name, type: "warning", minutes: interval });
+              // Track that we notified for this interval
+              await db.collection("bosses").updateOne(
+                { _id: boss._id },
+                { $set: { lastNotifiedAt: now, lastNotifiedType: `interval_${interval}` } }
+              );
+            }
             break;
           }
         }
