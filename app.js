@@ -902,13 +902,17 @@ function renderScheduledInline() {
     if (!container) return;
     container.innerHTML = '';
     
-    // Use the new weekly schedule list class
     container.className = 'weekly-schedule-list';
     
     scheduledTimes.forEach((t, idx) => {
         const row = document.createElement('div');
         row.className = 'weekly-time-row';
 
+        // Day field with label
+        const dayField = document.createElement('div');
+        dayField.className = 'time-field';
+        const dayLabel = document.createElement('label');
+        dayLabel.textContent = 'Day';
         const daySel = document.createElement('select');
         ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].forEach(d => {
             const opt = document.createElement('option'); opt.value = d; opt.textContent = d;
@@ -917,25 +921,50 @@ function renderScheduledInline() {
             daySel.appendChild(opt);
         });
         daySel.addEventListener('change', e => { scheduledTimes[idx].day = e.target.value; });
+        dayField.appendChild(dayLabel);
+        dayField.appendChild(daySel);
 
-        const hourIn = document.createElement('input');
-        hourIn.type = 'number'; hourIn.min = 0; hourIn.max = 23; hourIn.placeholder = '00';
-        hourIn.value = (t.hour == null ? '' : t.hour);
-        hourIn.addEventListener('change', e => { const v = e.target.value; scheduledTimes[idx].hour = v === '' ? null : Math.max(0, Math.min(23, parseInt(v,10)||0)); });
+        // Hour field with label
+        const hourField = document.createElement('div');
+        hourField.className = 'time-field';
+        const hourLabel = document.createElement('label');
+        hourLabel.textContent = 'Hour';
+        const hourSel = document.createElement('select');
+        for (let h = 0; h < 24; h++) {
+            const opt = document.createElement('option'); opt.value = h; opt.textContent = h.toString().padStart(2, '0');
+            if (t.hour === h) opt.selected = true;
+            hourSel.appendChild(opt);
+        }
+        hourSel.addEventListener('change', e => { scheduledTimes[idx].hour = parseInt(e.target.value, 10); });
+        hourField.appendChild(hourLabel);
+        hourField.appendChild(hourSel);
 
-        const minuteIn = document.createElement('input');
-        minuteIn.type = 'number'; minuteIn.min = 0; minuteIn.max = 59; minuteIn.placeholder = '00';
-        minuteIn.value = (t.minute == null ? '' : t.minute);
-        minuteIn.addEventListener('change', e => { const v = e.target.value; scheduledTimes[idx].minute = v === '' ? null : Math.max(0, Math.min(59, parseInt(v,10)||0)); });
+        // Minute field with label
+        const minuteField = document.createElement('div');
+        minuteField.className = 'time-field';
+        const minuteLabel = document.createElement('label');
+        minuteLabel.textContent = 'Min';
+        const minuteSel = document.createElement('select');
+        for (let m = 0; m < 60; m++) {
+            const opt = document.createElement('option'); opt.value = m; opt.textContent = m.toString().padStart(2, '0');
+            if (t.minute === m) opt.selected = true;
+            minuteSel.appendChild(opt);
+        }
+        minuteSel.addEventListener('change', e => { scheduledTimes[idx].minute = parseInt(e.target.value, 10); });
+        minuteField.appendChild(minuteLabel);
+        minuteField.appendChild(minuteSel);
 
+        // Remove button
         const removeBtn = document.createElement('button');
-        removeBtn.type = 'button'; removeBtn.className = 'remove-btn'; removeBtn.textContent = '✕';
+        removeBtn.type = 'button';
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = '✕';
         removeBtn.title = 'Remove';
         removeBtn.addEventListener('click', () => { scheduledTimes.splice(idx,1); renderScheduledInline(); });
 
-        row.appendChild(daySel);
-        row.appendChild(hourIn);
-        row.appendChild(minuteIn);
+        row.appendChild(dayField);
+        row.appendChild(hourField);
+        row.appendChild(minuteField);
         row.appendChild(removeBtn);
         container.appendChild(row);
     });
