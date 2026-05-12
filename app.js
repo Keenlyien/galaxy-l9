@@ -1456,3 +1456,151 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// === DISCORD NOTIFICATIONS ===
+let discordSettings = {
+    webhookUrl: "",
+    roleId: "",
+    notifyIntervals: [5, 10, 15, 20],
+    enabled: false
+};
+
+async function loadDiscordSettings() {
+    try {
+        const res = await fetch("/api/discord");
+        if (res.ok) {
+            discordSettings = await res.json();
+            applyDiscordSettingsToUI();
+        }
+    } catch (err) {
+        console.error("Failed to load Discord settings:", err);
+    }
+}
+
+function applyDiscordSettingsToUI() {
+    const enabled = document.getElementById("discord-enabled");
+    const webhook = document.getElementById("discord-webhook");
+    const role = document.getElementById("discord-role");
+    const checkboxes = document.querySelectorAll('input[name="intervals"]');
+
+    if (enabled) enabled.checked = discordSettings.enabled;
+    if (webhook) webhook.value = discordSettings.webhookUrl || "";
+    if (role) role.value = discordSettings.roleId || "";
+
+    checkboxes.forEach(cb => {
+        cb.checked = discordSettings.notifyIntervals.includes(parseInt(cb.value));
+    });
+}
+
+function getSelectedIntervals() {
+    const checkboxes = document.querySelectorAll('input[name="intervals"]:checked');
+    const intervals = [];
+    checkboxes.forEach(cb => intervals.push(parseInt(cb.value)));
+    return intervals.sort((a, b) => a - b);
+}
+
+function showDiscordModal(show) {
+    const modal = document.getElementById("discord-modal");
+    if (!modal) return;
+    if (show) {
+        loadDiscordSettings();
+        modal.classList.remove("hidden");
+    } else {
+        modal.classList.add("hidden");
+    }
+}
+
+async function saveDiscordSettings() {
+    const enabled = document.getElementById("discord-enabled")?.checked || false;
+    const webhookUrl = document.getElementById("discord-webhook")?.value || "";
+    const roleId = document.getElementById("discord-role")?.value || "";
+    const notifyIntervals = getSelectedIntervals();
+
+    // Validation
+    if (enabled && !webhookUrl) {
+        showDiscordTestResult("Please enter a webhook URL", "error");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/discord", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ enabled, webhookUrl, roleId, notifyIntervals })
+        });
+
+        if (res.ok) {
+            discordSettings = { enabled, webhookUrl, roleId, notifyIntervals };
+            showDiscordTestResult("Settings saved successfully!", "success");
+            setTimeout(() => showDiscordModal(false), 1500);
+        } else {
+            showDiscordTestResult("Failed to save settings", "error");
+        }
+    } catch (err) {
+        showDiscordTestResult("Error: " + err.message, "error");
+    }
+}
+
+function showDiscordTestResult(message, type) {
+    const el = document.getElementById("discord-test-result");
+    if (!el) return;
+    el.textContent = message;
+    el.className = "discord-test-result " + type;
+}
+
+async function testDiscordWebhook() {
+    const webhookUrl = document.getElementById("discord-webhook")?.value;
+    const roleId = document.getElementById("discord-role")?.value;
+
+    if (!webhookUrl) {
+        showDiscordTestResult("Please enter a webhook URL first", "error");
+        return;
+    }
+
+    showDiscordTestResult("Sending test message...", "success");
+
+    let content = "🔔 Boss Tracker test notification!";
+    if (roleId) {
+        content = `<@&${roleId}> ${content}`;
+    }
+
+    try {
+        const res = await fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content })
+        });
+
+        if (res.ok) {
+            showDiscordTestResult("Test message sent successfully! ✅", "success");
+        } else {
+            showDiscordTestResult("Failed to send. Check webhook URL.", "error");
+        }
+    } catch (err) {
+        showDiscordTestResult("Error: " + err.message, "error");
+    }
+}
+
+// Wire Discord modal buttons
+document.addEventListener("DOMContentLoaded", () => {
+    const saveBtn = document.getElementById("discord-save");
+    if (saveBtn) saveBtn.addEventListener("click", saveDiscordSettings);
+
+    const testBtn = document.getElementById("discord-test");
+    if (testBtn) testBtn.addEventListener("click", testDiscordWebhook);
+});
+
+// Add Discord link to sidebar
+document.addEventListener("DOMContentLoaded", () => {
+    const sidebar = document.querySelector(".sidebar");
+    if (sidebar) {
+        const discordLink = document.createElement("a");
+        discordLink.href = "#";
+        discordLink.textContent = "Discord Settings";
+        discordLink.onclick = (e) => {
+            e.preventDefault();
+            showDiscordModal(true);
+        };
+        sidebar.appendChild(discordLink);
+    }
+});
+

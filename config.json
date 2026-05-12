@@ -1,4 +1,10 @@
 {
     "username": "admin",
-    "password": "admin123"
+    "password": "admin123",
+    "discord": {
+        "webhookUrl": "",
+        "roleId": "",
+        "notifyIntervals": [5, 10, 15, 20],
+        "enabled": false
+    }
 }

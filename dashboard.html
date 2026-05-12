@@ -154,6 +154,69 @@
 <!-- Respawn editor modal (weekly schedule editor) -->
 <!-- Weekly modal removed per request; scheduled uses duration inputs inline like unscheduled -->
 
+<!-- Discord Settings Modal -->
+<div id="discord-modal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Discord Notifications</h2>
+            <button class="modal-close" onclick="showDiscordModal(false)">&times;</button>
+        </div>
+        <form id="discord-form" class="boss-form">
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="discord-enabled" style="width:auto; margin-right:8px;">
+                    Enable Discord Notifications
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label for="discord-webhook">Discord Webhook URL</label>
+                <input type="url" id="discord-webhook" placeholder="https://discord.com/api/webhooks/...">
+                <small style="color:#71717a;font-size:12px;">Get webhook from Discord Server Settings → Integrations</small>
+            </div>
+
+            <div class="form-group">
+                <label for="discord-role">Discord Role ID (optional)</label>
+                <input type="text" id="discord-role" placeholder="e.g., 123456789012345678">
+                <small style="color:#71717a;font-size:12px;">Right-click role in Discord → Copy ID (enable Developer Mode)</small>
+            </div>
+
+            <div class="form-group">
+                <label>Notify before respawn (minutes)</label>
+                <div class="interval-checkboxes">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="intervals" value="5"> 5 min
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="intervals" value="10"> 10 min
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="intervals" value="15"> 15 min
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="intervals" value="20"> 20 min
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="intervals" value="30"> 30 min
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="intervals" value="60"> 1 hour
+                    </label>
+                </div>
+            </div>
+
+            <div class="discord-test-result" id="discord-test-result"></div>
+
+            <div class="modal-footer">
+                <div class="footer-right">
+                    <button type="button" id="discord-test" class="btn btn-secondary">Test Webhook</button>
+                    <button type="button" id="discord-save" class="btn btn-primary">Save Settings</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Scripts -->
 <script src="lang.js"></script>
 <script src="app.js"></script>

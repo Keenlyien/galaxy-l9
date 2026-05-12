@@ -53,7 +53,17 @@ const LANG = {
         delete_failed: "Failed to delete boss",
         image_too_large: "Image must be 4MB or smaller",
         login_failed: "Login failed: Username and password do not match",
-        config_error: "Error loading configuration"
+        config_error: "Error loading configuration",
+        discord_settings: "Discord Settings",
+        discord_notifications: "Discord Notifications",
+        enable_discord: "Enable Discord Notifications",
+        webhook_url: "Discord Webhook URL",
+        webhook_hint: "Get webhook from Discord Server Settings → Integrations",
+        role_id: "Discord Role ID (optional)",
+        role_hint: "Right-click role in Discord → Copy ID (enable Developer Mode)",
+        notify_before: "Notify before respawn (minutes)",
+        test_webhook: "Test Webhook",
+        settings_saved: "Settings saved successfully!"
     },
     th: {
         login_title: "เข้าสู่ระบบ",
@@ -109,6 +119,16 @@ const LANG = {
         delete_failed: "ไม่สามารถลบบอสได้",
         image_too_large: "รูปภาพต้องมีขนาดไม่เกิน 4MB",
         login_failed: "เข้าสู่ระบบล้มเหลว: ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
-        config_error: "เกิดข้อผิดพลาดในการโหลดการตั้งค่า"
+        config_error: "เกิดข้อผิดพลาดในการโหลดการตั้งค่า",
+        discord_settings: "การตั้งค่า Discord",
+        discord_notifications: "การแจ้งเตือน Discord",
+        enable_discord: "เปิดใช้งานการแจ้งเตือน Discord",
+        webhook_url: "URL Webhook ของ Discord",
+        webhook_hint: "รับ Webhook จาก Discord Server Settings → Integrations",
+        role_id: "ID บทบาท Discord (ไม่บังคับ)",
+        role_hint: "คลิกขวาบทบาทใน Discord → คัดลอก ID (เปิด Developer Mode)",
+        notify_before: "แจ้งเตือนก่อนเกิด (นาที)",
+        test_webhook: "ทดสอบ Webhook",
+        settings_saved: "บันทึกการตั้งค่าสำเร็จ!"
     }
 };

@@ -1598,3 +1598,56 @@ select option {
     padding: 8px 16px;
     font-size: 14px;
 }
+
+/* ==== DISCORD SETTINGS ==== */
+.interval-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: #27272a;
+    border: 1px solid #3f3f46;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.checkbox-label:hover {
+    border-color: #6366f1;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #6366f1;
+}
+
+.discord-test-result {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    display: none;
+}
+
+.discord-test-result.success {
+    display: block;
+    background: #052e16;
+    border: 1px solid #166534;
+    color: #4ade80;
+}
+
+.discord-test-result.error {
+    display: block;
+    background: #450a0a;
+    border: 1px solid #7f1d1d;
+    color: #f87171;
+}
