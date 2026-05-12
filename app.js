@@ -1,5 +1,5 @@
 // Redirect if not logged in
-let currentLang = localStorage.getItem("language") || 'en';
+let currentLang = 'en';
 
 
 // Optional: real-time updates via SSE
@@ -81,24 +81,6 @@ loadBossStatusFromDB();
 
 function setLanguage(lang) {
     currentLang = lang;
-    localStorage.setItem("language", lang);
-
-    const langSelect = document.getElementById("lang-select");
-    if (langSelect) langSelect.value = lang;
-
-    if (document.getElementById("username")) {
-        document.querySelector("h2").textContent = LANG[lang].login_title;
-        document.getElementById("username").placeholder = LANG[lang].username_placeholder;
-        document.getElementById("password").placeholder = LANG[lang].password_placeholder;
-        document.querySelector(".btn").textContent = LANG[lang].login_btn;
-    }
-
-    if (document.querySelector(".header-title")) {
-        document.querySelector(".header-title").textContent = LANG[lang].boss_schedule_title;
-        const logoutBtn = document.querySelector(".logout-btn");
-        if (logoutBtn) logoutBtn.textContent = LANG[lang].logout_btn;
-    }
-
     if (typeof renderBosses === "function") renderBosses();
 }
 
@@ -250,7 +232,7 @@ function renderBosses() {
     container.innerHTML = "";
 
     // Safety check: LANG must be loaded
-    if (!LANG || !LANG[currentLang]) {
+    if (!LANG) {
         console.warn("LANG not yet loaded, retrying...");
         setTimeout(renderBosses, 100);
         return;
@@ -333,17 +315,17 @@ function renderBosses() {
                 timeLeft = respawnMs - elapsed;
                 if (timeLeft < 0) timeLeft = 0;
 
-                status = timeLeft > 0 ? LANG[currentLang].dead : LANG[currentLang].alive;
+                status = timeLeft > 0 ? LANG.dead : LANG.alive;
             } else {
                 timeLeft = 0;
-                status = LANG[currentLang].alive;
+                status = LANG.alive;
             }
         } else if (weekly) {
             const nextSpawn = getNextWeeklySpawn(weekly);
             timeLeft = nextSpawn - now;
             if (timeLeft < 0) timeLeft = 0;
 
-            status = timeLeft > 0 ? LANG[currentLang].dead : LANG[currentLang].alive;
+            status = timeLeft > 0 ? LANG.dead : LANG.alive;
         }
 
         const card = document.createElement("div");
@@ -355,18 +337,18 @@ function renderBosses() {
                 <div class="boss-left">
                     <div class="boss-title">${boss.name} <span style="opacity:0.8; font-size:16px;">(Lv. ${boss.level})</span></div>
                     <div class="boss-sub">${boss.location}</div>
-                    <div class="boss-sub respawn">${LANG[currentLang].respawn}: ${boss.respawn}</div>
+                    <div class="boss-sub respawn">${LANG.respawn}: ${boss.respawn}</div>
                     <div class="timer status" id="timer_${i}">
-                        ${timeLeft > 0 ? formatTime(timeLeft) : LANG[currentLang].alive}
+                        ${timeLeft > 0 ? formatTime(timeLeft) : LANG.alive}
                     </div>
 
                     ${hours !== null ? `
                     <button class="datetime-picker-btn" onclick="openDTModal(${i})">
-                        ${LANG[currentLang].pick_datetime}
+                        ${LANG.pick_datetime}
                     </button>
                     <input type="datetime-local" class="datetime-input" id="dt_${i}">
                     <div class="datetime-display" id="dt_display_${i}">
-                        ${LANG[currentLang].no_date}
+                        ${LANG.no_date}
                     </div>
                     ` : ""}
                 </div>
@@ -378,8 +360,8 @@ function renderBosses() {
 
             ${hours !== null ? `
             <div class="btn-row">
-                <button class="btn kill-btn" onclick="killBoss('${boss.name}')">${LANG[currentLang].kill}</button>
-                <button class="btn unkill-btn" onclick="unkillBoss('${boss.name}')">${LANG[currentLang].unkill}</button>
+                <button class="btn kill-btn" onclick="killBoss('${boss.name}')">${LANG.kill}</button>
+                <button class="btn unkill-btn" onclick="unkillBoss('${boss.name}')">${LANG.unkill}</button>
             </div>
             ` : ""}
             <div class="btn-row">
@@ -514,7 +496,7 @@ function startTimer(id, timeLeft) {
         if (!timerEl) return;
 
         if (timeLeft <= 0) {
-            timerEl.textContent = LANG[currentLang].alive;
+            timerEl.textContent = LANG.alive;
             return;
         }
 
@@ -659,11 +641,11 @@ document.getElementById("dt-next-month").onclick = () => {
 };
 
 // Time label
-document.querySelector(".dt-time-section label").textContent = LANG[currentLang].time;
+document.querySelector(".dt-time-section label").textContent = LANG.time;
 
 // Buttons
-document.querySelector(".dt-cancel").textContent = LANG[currentLang].cancel;
-document.querySelector(".dt-confirm").textContent = LANG[currentLang].confirm;
+document.querySelector(".dt-cancel").textContent = LANG.cancel;
+document.querySelector(".dt-confirm").textContent = LANG.confirm;
 
 function confirmDTSelection() {
     const hour = document.getElementById("dt-hour").value;
@@ -742,10 +724,6 @@ document.addEventListener("DOMContentLoaded", () => {
         tzSelect.addEventListener("change", e => {
             setTimezone(e.target.value);
         });
-    }
-    const langSelect = document.getElementById("lang-select");
-    if (langSelect) {
-        langSelect.value = currentLang;
     }
     setLanguage(currentLang);
 });
