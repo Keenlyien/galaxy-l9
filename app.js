@@ -136,8 +136,23 @@ let currentSort = "default";
 
 function parseRespawnHours(text) {
     if (!text) return null;
-    const match = text.match(/(\d+)\s*Hour/);
-    return match ? parseInt(match[1], 10) : null;
+    
+    // Match hours
+    const hourMatch = text.match(/(\d+)\s*Hour/i);
+    let totalMinutes = 0;
+    
+    if (hourMatch) {
+        totalMinutes += parseInt(hourMatch[1], 10) * 60;
+    }
+    
+    // Also match minutes
+    const minMatch = text.match(/(\d+)\s*Minute/i);
+    if (minMatch) {
+        totalMinutes += parseInt(minMatch[1], 10);
+    }
+    
+    // Return total hours (can be fractional for precision)
+    return totalMinutes > 0 ? totalMinutes / 60 : null;
 }
 
 function parseWeeklyRespawns(text) {
