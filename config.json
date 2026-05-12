@@ -4,7 +4,7 @@
     "discord": {
         "webhookUrl": "",
         "roleId": "",
-        "notifyIntervals": [5, 10, 15, 20],
+        "notifyIntervals": [0, 5, 10, 15, 20],
         "enabled": false
     }
 }

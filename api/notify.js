@@ -121,14 +121,41 @@ export default async function handler(req, res) {
       
       // Check if any interval matches
       for (const interval of notifyIntervals) {
+        // Handle "now" (0) - notify when boss just respawned (timeUntilRespawn <= 0 and recently killed)
+        if (interval === 0) {
+          // Check if boss just respawned (within last 2 minutes)
+          const timeSinceKilled = now - Number(lastKilled);
+          if (timeSinceKilled > 0 && timeSinceKilled < 120000) {
+            // Get original respawn duration to determine if it was killed
+            let wasKilled = false;
+            if (hours !== null) {
+              const respawnMs = hours * 3600 * 1000;
+              wasKilled = (now - Number(lastKilled)) >= respawnMs - 60000;
+            }
+            
+            if (wasKilled || timeSinceKilled > 60000) {
+              let content = `✅ **${boss.name}** (Lv. ${boss.level}) at ${boss.location} has respawned!`;
+              if (roleId) {
+                content = `<@&${roleId}> ${content}`;
+              }
+              
+              notifications.push({
+                boss: boss.name,
+                respawnTime: new Date().toISOString(),
+                interval: 0,
+                content,
+                isNow: true
+              });
+            }
+          }
+          continue;
+        }
+        
         const intervalMs = interval * 60 * 1000;
         const diff = Math.abs(timeUntilRespawn - intervalMs);
         
         // Within 1 minute tolerance
         if (diff < 60000 && timeUntilRespawn > 0 && timeUntilRespawn < intervalMs + 60000) {
-          // Check if we already notified for this interval (store in localStorage on client, 
-          // but for now we'll just send)
-          
           const timeText = interval >= 60 
             ? `${Math.floor(interval/60)} hour${interval >= 120 ? 's' : ''}` 
             : `${interval} minute${interval > 1 ? 's' : ''}`;

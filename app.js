@@ -363,8 +363,8 @@ function renderBosses() {
 
             ${hours !== null ? `
             <div class="btn-row">
-                <button class="btn kill-btn" onclick="killBoss(${i})">${LANG[currentLang].kill}</button>
-                <button class="btn unkill-btn" onclick="unkillBoss(${i})">${LANG[currentLang].unkill}</button>
+                <button class="btn kill-btn" onclick="killBoss('${boss.name}')">${LANG[currentLang].kill}</button>
+                <button class="btn unkill-btn" onclick="unkillBoss('${boss.name}')">${LANG[currentLang].unkill}</button>
             </div>
             ` : ""}
             <div class="btn-row">
@@ -402,8 +402,14 @@ function parseLocalDateTime(value) {
    KILL / UNKILL (PATCHED)
 ----------------------------- */
 
-async function killBoss(i) {
-    const input = document.getElementById(`dt_${i}`);
+async function killBoss(bossName) {
+    // Find the boss in the bosses array
+    const boss = bosses.find(b => b.name === bossName);
+    if (!boss) return;
+
+    // Find the boss's index in the original array for datetime picker
+    const bossIndex = bosses.indexOf(boss);
+    const input = document.getElementById(`dt_${bossIndex}`);
     const selected = input && input.value
         ? parseLocalDateTime(input.value)
         : Date.now();
@@ -411,37 +417,31 @@ async function killBoss(i) {
     const killTime = Math.min(selected, Date.now());
 
     // Save local copy (instant UI)
-    localStorage.setItem("boss_kill_" + bosses[i].name, String(killTime));
+    localStorage.setItem("boss_kill_" + bossName, String(killTime));
 
     // UPDATE MONGODB
     try {
-        await updateBoss(bosses[i].name, killTime);
+        await updateBoss(bossName, killTime);
     } catch (err) {
-        // if update fails, leave localStorage as-is but log error
         console.error("Failed to update server when killing:", err);
     }
 
-    // Immediately re-sync from server to ensure all browsers get same canonical source
     await loadBossStatusFromDB();
-
-    // renderBosses() already called by loadBossStatusFromDB()
 }
 
-async function unkillBoss(i) {
-    localStorage.removeItem("boss_kill_" + bosses[i].name);
+async function unkillBoss(bossName) {
+    localStorage.removeItem("boss_kill_" + bossName);
 
     try {
-        // Tell server to clear kill time (we send null; server should set last_killed to null)
         await fetch("/api/updateBoss", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bossName: bosses[i].name, status: null })
+            body: JSON.stringify({ bossName: bossName, status: null })
         });
     } catch (err) {
         console.error("Failed to update server when un-killing:", err);
     }
 
-    // Immediately re-sync
     await loadBossStatusFromDB();
 }
 
