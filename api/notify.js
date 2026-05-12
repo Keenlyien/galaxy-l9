@@ -168,7 +168,7 @@ export default async function handler(req, res) {
         // Check if we already notified recently to avoid duplicates
         const lastNotified = boss.lastNotifiedAt || 0;
         if (now - lastNotified > 300000) { // 5 min cooldown
-          let content = `${boss.name} has respawned in ${boss.location}!`;
+          let content = `The ${boss.name} has respawned at ${boss.location}!`;
           if (roleId) content = `<@&${roleId}> ${content}`;
           const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawned!", 0x22c55e);
           if (ok) {
@@ -189,10 +189,9 @@ export default async function handler(req, res) {
           if (interval === 0) continue;
 
           const intervalMs = interval * 60 * 1000;
-          // Only send within 30 seconds of the exact interval (not 1 minute window)
-          const diff = Math.abs(timeUntilRespawn - intervalMs);
-
-          if (diff < 30000) {
+          // Only send when time remaining is approximately equal to the interval (within 20 seconds)
+          // Must be >= interval - 20s AND <= interval + 20s
+          if (timeUntilRespawn >= intervalMs - 20000 && timeUntilRespawn <= intervalMs + 20000) {
             // Check cooldown to prevent duplicate notifications
             const lastNotifiedType = boss.lastNotifiedType || "";
             const lastNotifiedAt = boss.lastNotifiedAt || 0;
@@ -203,7 +202,7 @@ export default async function handler(req, res) {
             }
 
             const timeText = interval >= 60 ? `${Math.floor(interval / 60)} hour(s)` : `${interval} minutes`;
-            let content = `${boss.name} is respawning in ${timeText} in ${boss.location}`;
+            let content = `The ${boss.name} is respawning in ${timeText} at ${boss.location}`;
             if (roleId) content = `<@&${roleId}> ${content}`;
             const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawn Soon!", 0xf59e0b);
             if (ok) {
