@@ -69,78 +69,78 @@
         </div>
         <form id="boss-form" class="boss-form">
             <div class="form-group">
-                <label for="boss-name" data-i18n="boss_name">Boss Name</label>
-                <input type="text" id="boss-name" data-i18n-placeholder="boss_name" placeholder="Enter boss name" required>
+                <label for="boss-name">Boss Name</label>
+                <input type="text" id="boss-name" placeholder="Enter boss name" required>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="boss-location" data-i18n="location">Location</label>
-                    <input type="text" id="boss-location" data-i18n-placeholder="location" placeholder="e.g., Galaxy Field" required>
+                    <label for="boss-location">Location</label>
+                    <input type="text" id="boss-location" placeholder="e.g., Galaxy Field" required>
                 </div>
                 <div class="form-group">
-                    <label for="boss-level" data-i18n="level">Level</label>
+                    <label for="boss-level">Level</label>
                     <input type="number" id="boss-level" min="1" placeholder="1" required>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="boss-schedule-type" data-i18n="schedule_type">Schedule Type</label>
+                <label for="boss-schedule-type">Schedule Type</label>
                 <select id="boss-schedule-type" required>
-                    <option value="" data-i18n="choose_schedule">Choose schedule type</option>
-                    <option value="scheduled" data-i18n="weekly_schedule">Weekly Schedule</option>
-                    <option value="unscheduled" data-i18n="hourly_respawn">Hourly Respawn</option>
+                    <option value="">Choose schedule type</option>
+                    <option value="scheduled">Weekly Schedule</option>
+                    <option value="unscheduled">Hourly Respawn</option>
                 </select>
             </div>
 
             <!-- Scheduled Weekly -->
             <div id="scheduled-respawn" class="respawn-section hidden">
-                <label id="scheduled-label" data-i18n="weekly_schedule">Weekly Schedule</label>
+                <label id="scheduled-label">Weekly Schedule</label>
                 <div class="scheduled-times-list" id="scheduled-times-list"></div>
             </div>
 
             <!-- Hourly Respawn -->
             <div id="unscheduled-respawn" class="respawn-section hidden">
-                <label data-i18n="respawn_duration">Respawn Duration</label>
+                <label>Respawn Duration</label>
                 <div class="duration-grid">
                     <div class="duration-field">
                         <input type="number" id="boss-respawn-days" min="0" value="0">
-                        <span data-i18n="days">Days</span>
+                        <span>Days</span>
                     </div>
                     <div class="duration-field">
                         <input type="number" id="boss-respawn-hours" min="0" max="23" value="0">
-                        <span data-i18n="hours">Hours</span>
+                        <span>Hours</span>
                     </div>
                     <div class="duration-field">
                         <input type="number" id="boss-respawn-minutes" min="0" max="59" value="0">
-                        <span data-i18n="minutes">Minutes</span>
+                        <span>Minutes</span>
                     </div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label data-i18n="boss_image">Boss Image</label>
+                <label>Boss Image</label>
                 <div class="file-upload">
                     <input type="file" id="boss-image" accept="image/*">
-                    <span class="file-hint" data-i18n="max_size">Max 4MB</span>
+                    <span class="file-hint">Max 4MB</span>
                 </div>
             </div>
 
             <div id="boss-form-errors" class="form-errors"></div>
 
             <div id="boss-delete-confirm" class="delete-confirm hidden">
-                <p data-i18n="confirm_delete">Are you sure you want to delete this boss? This action cannot be undone.</p>
+                <p>Are you sure you want to delete this boss? This action cannot be undone.</p>
                 <div class="confirm-buttons">
-                    <button type="button" id="boss-delete-confirm-yes" class="btn btn-danger" data-i18n="delete">Delete</button>
-                    <button type="button" id="boss-delete-confirm-no" class="btn btn-secondary" data-i18n="cancel">Cancel</button>
+                    <button type="button" id="boss-delete-confirm-yes" class="btn btn-danger">Delete</button>
+                    <button type="button" id="boss-delete-confirm-no" class="btn btn-secondary">Cancel</button>
                 </div>
             </div>
 
             <div class="modal-footer">
-                <button type="button" id="boss-delete" class="btn btn-danger-outline hidden" data-i18n="delete">Delete</button>
+                <button type="button" id="boss-delete" class="btn btn-danger-outline hidden">Delete</button>
                 <div class="footer-right">
-                    <button type="button" id="boss-cancel" class="btn btn-secondary" data-i18n="cancel">Cancel</button>
-                    <button type="button" id="boss-save" class="btn btn-primary" data-i18n="save">Save Boss</button>
+                    <button type="button" id="boss-cancel" class="btn btn-secondary">Cancel</button>
+                    <button type="button" id="boss-save" class="btn btn-primary">Save Boss</button>
                 </div>
             </div>
         </form>

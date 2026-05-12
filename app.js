@@ -475,7 +475,7 @@ async function sendDiscordNotification(bossName, isRespawned = false) {
         const res = await fetch("/api/notify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bossName, immediate: isRespawned, trigger: true })
+            body: JSON.stringify({ bossName, killed: true })
         });
         const data = await res.json();
         console.log("Notification result:", data);
