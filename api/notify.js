@@ -85,17 +85,20 @@ async function sendDiscordMessage(webhookUrl, content, title, color) {
 
 export default async function handler(req, res) {
   try {
-    console.log("Notify API called", req.method, req.body);
+    const body = typeof req.body === 'object' ? req.body : {};
+    console.log("Notify API called", req.method, body);
 
     // Allow both GET and POST for cron job compatibility
     if (req.method !== 'GET' && req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
     }
+    
     const client = await getClient();
     const db = client.db("galaxy_l9");
 
     const settingsCollection = db.collection("settings");
     const discordSettings = await settingsCollection.findOne({ type: "discord" });
+    console.log("Discord settings found:", JSON.stringify(discordSettings));
 
     if (!discordSettings?.data?.enabled) {
       console.log("Notifications disabled in settings");
@@ -108,7 +111,7 @@ export default async function handler(req, res) {
     }
 
     const { webhookUrl, roleId, notifyIntervals } = discordSettings?.data || {};
-    const { bossName, unkill, killed } = req.body || {};
+    const { bossName, unkill, killed } = body;
     
     if (!notifyIntervals) {
       return res.status(200).json({ message: "No intervals configured" });
