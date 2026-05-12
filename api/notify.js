@@ -110,12 +110,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ message: "No webhook configured" });
     }
 
-    const { webhookUrl, roleId, notifyIntervals } = discordSettings?.data || {};
+    const { webhookUrl, roleId } = discordSettings?.data || {};
     const { bossName, unkill, killed } = body;
-    
-    if (!notifyIntervals) {
-      return res.status(200).json({ message: "No intervals configured" });
-    }
     
     const bosses = await db.collection("bosses").find({}).toArray();
     const now = Date.now();
@@ -145,80 +141,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, sent });
     }
 
-    for (const boss of bosses) {
-      if (!boss.last_killed) continue;
-
-      const hours = parseRespawnHours(boss.respawn);
-      const weekly = parseWeeklyRespawns(boss.respawn);
-      let respawnTime = null;
-
-      if (hours !== null) {
-        respawnTime = Number(boss.last_killed) + hours * 3600 * 1000;
-      } else if (weekly) {
-        respawnTime = getNextWeeklySpawn(weekly);
-      }
-
-      if (!respawnTime) continue;
-
-      const timeUntilRespawn = respawnTime - now;
-      const minutesUntil = Math.round(timeUntilRespawn / 60000);
-
-      // Respawned notification (0 minutes - boss just spawned)
-      if (notifyIntervals.includes(0) && timeUntilRespawn <= 0 && timeUntilRespawn > -120000) {
-        // Check if we already notified recently to avoid duplicates
-        const lastNotified = boss.notified_respawned || 0;
-        if (now - lastNotified > 300000) { // 5 min cooldown
-          let content = `The ${boss.name} has respawned at ${boss.location}!`;
-          if (roleId) content = `<@&${roleId}> ${content}`;
-          const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawned!", 0x22c55e);
-          if (ok) {
-            sent.push({ boss: boss.name, type: "respawned", minutes: 0 });
-            // Update last notified time
-            await db.collection("bosses").updateOne(
-              { _id: boss._id },
-              { $set: { notified_respawned: now } }
-            );
-          }
-        }
-        continue;
-      }
-
-      // Pre-notification at exact intervals (5, 10, 15, 20, 30 min)
-      if (timeUntilRespawn > 0) {
-        for (const interval of notifyIntervals) {
-          if (interval === 0) continue;
-
-          const intervalMs = interval * 60 * 1000;
-          // Widen window to 90 seconds to account for cron jitter (runs every minute with some delay)
-          // e.g., for 5 min: trigger when timeUntilRespawn is between 300000ms (5min) and 390000ms (6.5min)
-          if (timeUntilRespawn >= intervalMs && timeUntilRespawn < intervalMs + 90000) {
-            // Check if we already notified for this specific interval
-            const lastNotifiedForInterval = boss[`notified_interval_${interval}`] || 0;
-            const cooldownMs = interval * 60 * 1000;
-            
-            if (lastNotifiedForInterval && (now - lastNotifiedForInterval) < cooldownMs) {
-              continue; // Already notified for this interval
-            }
-
-            const timeText = interval >= 60 ? `${Math.floor(interval / 60)} hour(s)` : `${interval} minutes`;
-            let content = `The ${boss.name} is respawning in ${timeText} (${interval}) at ${boss.location}`;
-            if (roleId) content = `<@&${roleId}> ${content}`;
-            const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawn Soon!", 0xf59e0b);
-            if (ok) {
-              sent.push({ boss: boss.name, type: "warning", minutes: interval });
-              // Track that we notified for this specific interval (use separate field)
-              const updateField = {};
-              updateField[`notified_interval_${interval}`] = now;
-              await db.collection("bosses").updateOne(
-                { _id: boss._id },
-                { $set: updateField }
-              );
-            }
-            // Don't break - continue to check other intervals
-          }
-        }
-      }
-    }
+    // Pre-notification logic removed - will be implemented differently
 
     res.status(200).json({ success: true, sent });
   } catch (err) {
