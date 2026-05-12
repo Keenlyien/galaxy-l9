@@ -189,9 +189,9 @@ export default async function handler(req, res) {
           if (interval === 0) continue;
 
           const intervalMs = interval * 60 * 1000;
-          // Only send when time remaining is approximately equal to the interval (within 20 seconds)
-          // Must be >= interval - 20s AND <= interval + 20s
-          if (timeUntilRespawn >= intervalMs - 20000 && timeUntilRespawn <= intervalMs + 20000) {
+          // Only send when time remaining is exactly at the interval (within the next minute after reaching that interval)
+          // e.g., for 5 min: trigger when timeUntilRespawn is between 300000ms (5min) and 360000ms (6min)
+          if (timeUntilRespawn >= intervalMs && timeUntilRespawn < intervalMs + 60000) {
             // Check cooldown to prevent duplicate notifications
             const lastNotifiedType = boss.lastNotifiedType || "";
             const lastNotifiedAt = boss.lastNotifiedAt || 0;
@@ -202,7 +202,7 @@ export default async function handler(req, res) {
             }
 
             const timeText = interval >= 60 ? `${Math.floor(interval / 60)} hour(s)` : `${interval} minutes`;
-            let content = `The ${boss.name} is respawning in ${timeText} at ${boss.location}`;
+            let content = `The ${boss.name} is respawning in ${timeText} (${interval}) at ${boss.location}`;
             if (roleId) content = `<@&${roleId}> ${content}`;
             const ok = await sendDiscordMessage(webhookUrl, content, "Boss Respawn Soon!", 0xf59e0b);
             if (ok) {
